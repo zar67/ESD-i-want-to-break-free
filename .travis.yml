@@ -1,0 +1,71 @@
+sudo: required
+language: c++
+git:
+  depth: false
+
+matrix:
+  include:
+
+    # Code Style
+    - os: linux
+      name: "CODE::STYLE"
+      osx_image: xenial
+      env:
+        - MATRIX_EVAL=""
+      before_script:
+        - wget https://raw.githubusercontent.com/Sarcasm/run-clang-format/master/run-clang-format.py
+        - chmod +x run-clang-format.py
+      script:
+        - ./run-clang-format.py -r Source
+
+    # Code Quality
+    - os: linux
+      name: "CODE::QUALITY"
+      dist: xenial
+      cache: apt
+      addons:
+        apt:
+          update: true
+          packages:
+            - cppcheck
+      env:
+        - MATRIX_EVAL="$(curl -sL https://raw.githubusercontent.com/ryuichis/oclint-cpp-travis-ci-examples/master/oclint-ci-install.sh)"
+      script:
+        - /usr/bin/cppcheck --quiet --enable=all --std=c++14 --language=c++ --error-exitcode=1 --inline-suppr --force --suppressions-list=./CI/datpak/Tools/Cppcheck/suppress.conf main.cpp Source/*
+        - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON CMakeLists.txt
+        - oclint-json-compilation-database -e Libs -e _deps
+
+    # Linux GCC Build
+    - os: linux
+      name: "CODE::BUILD"
+      dist: xenial
+      compiler: g++
+      cache: apt
+
+      addons:
+        apt:
+          update: true
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'ppa:jonathonf/development-tools'
+          packages:
+            - gcc-8
+            - g++-8
+            - libtbb-dev
+            - libharfbuzz-bin
+            - libharfbuzz-dev
+            - libxrandr-dev
+            - libxi-dev
+            - libxinerama-dev
+            - libxcursor-dev
+            - libgl1-mesa-dev
+            - libglu1-mesa-dev
+      env:
+        - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
+      before_script:
+        - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON CMakeLists.txt
+      script:
+        - cmake --build .
+
+before_install:
+  - eval "${MATRIX_EVAL}"
