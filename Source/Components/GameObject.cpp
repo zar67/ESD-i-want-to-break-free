@@ -1,35 +1,33 @@
-#include <Engine/Renderer.h>
 #include "GameObject.h"
+#include <Engine/Renderer.h>
 
 GameObject::~GameObject()
 {
-	free();
+  free();
 }
 
-bool GameObject::addSpriteComponent(
-	ASGE::Renderer* renderer, const std::string& texture_file_name)
+bool GameObject::addSpriteComponent(ASGE::Renderer* renderer,
+                                    const std::string& texture_file_name)
 {
-	free();
+  free();
 
-	sprite_component = new SpriteComponent();
-	if (sprite_component->loadSprite(renderer, texture_file_name))
-	{
-		return true;
-	}
+  sprite_component = new SpriteComponent();
+  if (sprite_component->loadSprite(renderer, texture_file_name))
+  {
+    return true;
+  }
 
-	free();
-	return false;
+  free();
+  return false;
 }
 
-void  GameObject::free()
+void GameObject::free()
 {
-	delete sprite_component;
-	sprite_component = nullptr;
+  delete sprite_component;
+  sprite_component = nullptr;
 }
 
-
-SpriteComponent* GameObject::spriteComponent() 
+SpriteComponent* GameObject::spriteComponent()
 {
-	return sprite_component;
+  return sprite_component;
 }
-

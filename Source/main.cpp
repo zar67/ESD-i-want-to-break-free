@@ -2,14 +2,14 @@
 #include <iostream>
 int main()
 {
-	BreakoutGame game;
-	if (!game.init())
-	{
-		return -1;
-	}
+  BreakoutGame game;
+  if (!game.init())
+  {
+    return -1;
+  }
 
-	game.run();
+  game.run();
 
-	std::cout << "Exiting Game!" << std::endl;
-	return 0;
+  std::cout << "Exiting Game!" << std::endl;
+  return 0;
 }

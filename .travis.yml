@@ -1,7 +1,7 @@
 sudo: required
 language: c++
 git:
-  depth: false
+  depth: 5
 
 matrix:
   include:
@@ -9,7 +9,7 @@ matrix:
     # Code Style
     - os: linux
       name: "CODE::STYLE"
-      osx_image: xenial
+      dist: xenial
       env:
         - MATRIX_EVAL=""
       before_script:
@@ -26,13 +26,23 @@ matrix:
       addons:
         apt:
           update: true
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'ppa:jonathonf/development-tools'
           packages:
+            - gcc-8
+            - g++-8
+            - clang
             - cppcheck
+            - libgl1-mesa-dev
+            - libglu1-mesa-dev
       env:
-        - MATRIX_EVAL="$(curl -sL https://raw.githubusercontent.com/ryuichis/oclint-cpp-travis-ci-examples/master/oclint-ci-install.sh)"
+        - MATRIX_EVAL="CC=clang && CXX=clang++"
+      before_script:
+        - eval "$(curl -sL https://raw.githubusercontent.com/ryuichis/oclint-cpp-travis-ci-examples/master/oclint-ci-install.sh)"
+        - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON CMakeLists.txt
       script:
         - /usr/bin/cppcheck --quiet --enable=all --std=c++14 --language=c++ --error-exitcode=1 --inline-suppr --force --suppressions-list=./CI/datpak/Tools/Cppcheck/suppress.conf main.cpp Source/*
-        - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON CMakeLists.txt
         - oclint-json-compilation-database -e Libs -e _deps
 
     # Linux GCC Build
@@ -63,7 +73,7 @@ matrix:
       env:
         - MATRIX_EVAL="CC=gcc-8 && CXX=g++-8"
       before_script:
-        - cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON CMakeLists.txt
+        - cmake CMakeLists.txt
       script:
         - cmake --build .
 

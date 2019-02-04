@@ -11,7 +11,7 @@ BreakAfterJavaFieldAnnotations: 'true'
 BreakBeforeBraces: Allman
 BreakBeforeTernaryOperators: 'true'
 BreakConstructorInitializers: AfterColon
-ColumnLimit: '100'
+ColumnLimit: '80'
 DerivePointerAlignment: 'false'
 IndentCaseLabels: 'true'
 IndentPPDirectives: AfterHash
