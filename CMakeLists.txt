@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.9.2)
 include(CMake/platform.cmake)
 project(Breakout)
 
+## out of source builds ##
+set(CMAKE_DEBUG_POSTFIX d)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}/bin")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}/bin")
+
 ## set to true to use dlls instead of static libs ##
 set(BUILD_SHARED_LIBS false)
 

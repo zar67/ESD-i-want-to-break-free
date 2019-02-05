@@ -3,10 +3,6 @@ if (NOT CMAKE_BUILD_TYPE STREQUAL  "Debug" AND WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows")
 endif()
 
-set(CMAKE_DEBUG_POSTFIX d)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}/bin")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY  "${CMAKE_BINARY_DIR}/bin")
-
 ## compile language settings
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
