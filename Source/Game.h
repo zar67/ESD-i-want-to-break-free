@@ -27,6 +27,7 @@ class BreakoutGame : public ASGE::OGLGame
   int mouse_callback_id = -1; /**< Mouse Input Callback ID. */
 
   // Add your GameObjects
+  GameObject player;
 
   bool in_menu = true;
 };

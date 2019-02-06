@@ -1,3 +1,4 @@
+#include <iostream>
 #include <string>
 
 #include <Engine/DebugPrinter.h>
@@ -40,6 +41,16 @@ bool BreakoutGame::init()
   if (!initAPI())
   {
     return false;
+  }
+
+  renderer->setClearColour(ASGE::COLOURS::BLACK);
+
+  if (player.addSpriteComponent(renderer.get(),
+                                "Textures/puzzlepack/png/paddleBlue.png"))
+  {
+    std::cout << "Player Sprite Set" << std::endl;
+    player.spriteComponent()->getSprite()->xPos(300);
+    player.spriteComponent()->getSprite()->yPos(870);
   }
 
   toggleFPS();
@@ -92,6 +103,11 @@ void BreakoutGame::keyHandler(const ASGE::SharedEventData data)
   if (key->key == ASGE::KEYS::KEY_ESCAPE)
   {
     signalExit();
+  }
+
+  if (key->key == ASGE::KEYS::KEY_ENTER)
+  {
+    in_menu = false;
   }
 }
 
@@ -146,6 +162,7 @@ void BreakoutGame::render(const ASGE::GameTime&)
 
   if (in_menu)
   {
+    renderer->renderText("Press ENTER to start the game", 180, 460);
   }
   else
   {
