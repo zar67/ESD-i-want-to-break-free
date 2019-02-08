@@ -19,6 +19,7 @@ class BreakoutGame : public ASGE::OGLGame
   void keyHandler(const ASGE::SharedEventData data);
   void clickHandler(const ASGE::SharedEventData data);
   void setupResolution();
+  void setUpBlock(int count, float x, float y);
 
   virtual void update(const ASGE::GameTime&) override;
   virtual void render(const ASGE::GameTime&) override;
@@ -28,6 +29,8 @@ class BreakoutGame : public ASGE::OGLGame
 
   // Add your GameObjects
   GameObject player;
+  GameObject ball;
+  GameObject blocks[30];
 
   bool in_menu = true;
 };

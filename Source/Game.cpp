@@ -28,6 +28,21 @@ BreakoutGame::~BreakoutGame()
     static_cast<unsigned int>(mouse_callback_id));
 }
 
+void BreakoutGame::setUpBlock(int count, float x, float y)
+{
+    if (blocks[count].addSpriteComponent(renderer.get(),
+                    "Textures/puzzlepack/png/element_yellow_rectangle.png"))
+    {
+        blocks[count].spriteComponent()->getSprite()->xPos(x);
+        blocks[count].spriteComponent()->getSprite()->yPos(y);
+        std::cout << "Block " << count << " Sprite Set" << std::endl;
+    }
+    else
+    {
+        std::cout << "Block " << count << " Sprite NOT Set" << std::endl;
+    }
+}
+
 /**
  *   @brief   Initialises the game.
  *   @details The game window is created and all assets required to
@@ -49,8 +64,40 @@ bool BreakoutGame::init()
                                 "Textures/puzzlepack/png/paddleBlue.png"))
   {
     std::cout << "Player Sprite Set" << std::endl;
-    player.spriteComponent()->getSprite()->xPos(300);
-    player.spriteComponent()->getSprite()->yPos(870);
+    player.spriteComponent()->getSprite()->xPos(280);
+    player.spriteComponent()->getSprite()->yPos(850);
+  }
+  else
+  {
+      std::cout << "Player Sprite NOT Set" << std::endl;
+  }
+
+  if (ball.addSpriteComponent(renderer.get(), "Textures/puzzlepack/png/ballBlue.png"))
+  {
+      std::cout << "Ball Sprite Set" << std::endl;
+      ball.spriteComponent()->getSprite()->xPos(320);
+      ball.spriteComponent()->getSprite()->yPos(800);
+  }
+  else
+  {
+      std::cout << "Ball Sprite NOT Set" << std::endl;
+  }
+
+  int row = 0;
+  int column = 0;
+  for (int i = 0; i < 30; i++)
+  {
+      float x = float(row) * 100 + 35;
+      float y = float(column) * 50 + 30;
+      setUpBlock(i, x, y);
+
+      row++;
+      int extra = row % 6;
+      if (extra == 0)
+      {
+          row = 0;
+          column++;
+      }
   }
 
   toggleFPS();
@@ -166,5 +213,12 @@ void BreakoutGame::render(const ASGE::GameTime&)
   }
   else
   {
+    renderer->renderSprite(*player.spriteComponent()->getSprite());
+    renderer->renderSprite(*ball.spriteComponent()->getSprite());
+
+    for (int i = 0; i < 30; i++)
+    {
+        renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
+    }
   }
 }
