@@ -31,3 +31,13 @@ SpriteComponent* GameObject::spriteComponent()
 {
   return sprite_component;
 }
+
+void GameObject::visibility(bool v)
+{
+  visible = v;
+}
+
+bool GameObject::visibility()
+{
+  return visible;
+}

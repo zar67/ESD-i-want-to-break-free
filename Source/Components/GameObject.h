@@ -43,7 +43,12 @@ class GameObject
    */
   SpriteComponent* spriteComponent();
 
+  void visibility(bool v);
+  bool visibility();
+
  private:
   void free();
   SpriteComponent* sprite_component = nullptr;
+
+  bool visible = true;
 };

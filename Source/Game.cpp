@@ -218,7 +218,10 @@ void BreakoutGame::render(const ASGE::GameTime&)
 
     for (int i = 0; i < 30; i++)
     {
-        renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
+        if (blocks[i].visibility())
+        {
+            renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
+        }
     }
   }
 }
