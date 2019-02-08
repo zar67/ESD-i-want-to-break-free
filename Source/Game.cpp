@@ -66,6 +66,7 @@ bool BreakoutGame::init()
     std::cout << "Player Sprite Set" << std::endl;
     player.spriteComponent()->getSprite()->xPos(280);
     player.spriteComponent()->getSprite()->yPos(850);
+    player.speed(300.0f);
   }
   else
   {
@@ -156,6 +157,30 @@ void BreakoutGame::keyHandler(const ASGE::SharedEventData data)
   {
     in_menu = false;
   }
+
+  if (!in_menu && key->key == ASGE::KEYS::KEY_A)
+  {
+      if (key->action == ASGE::KEYS::KEY_RELEASED)
+      {
+          player.direction(0,0);
+      }
+      else
+      {
+          player.direction(-1,0);
+      }
+  }
+
+  else if (key->key == ASGE::KEYS::KEY_D)
+    {
+        if (key->action == ASGE::KEYS::KEY_RELEASED)
+        {
+            player.direction(0,0);
+        }
+        else
+        {
+            player.direction(1,0);
+        }
+    }
 }
 
 /**
@@ -190,6 +215,19 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
 {
   if (!in_menu)
   {
+      // Move player
+      float new_x = player.spriteComponent()->getSprite()->xPos();
+      if (player.direction().x == -1 && player.spriteComponent()->getSprite()->xPos() > 0)
+      {
+          new_x = new_x - float((player.speed() *(game_time.delta_time.count()/ 1000.f)));
+      }
+      else if (player.direction().x == 1 && player.spriteComponent()->getSprite()->xPos() < float(game_width - 100))
+      {
+          new_x = new_x + float((player.speed() *(game_time.delta_time.count()/ 1000.f)));
+      }
+
+      player.spriteComponent()->getSprite()->xPos(new_x);
+
   }
 
   // auto dt_sec = game_time.delta_time.count() / 1000.0;

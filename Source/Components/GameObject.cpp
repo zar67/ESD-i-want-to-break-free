@@ -41,3 +41,24 @@ bool GameObject::visibility()
 {
   return visible;
 }
+
+float GameObject::speed()
+{
+  return speed_;
+}
+
+void GameObject::speed(float s)
+{
+  speed_ = s;
+}
+
+vector2 GameObject::direction()
+{
+  return velocity;
+}
+
+void GameObject::direction(float x_, float y_)
+{
+  velocity.x = x_;
+  velocity.y = y_;
+}
