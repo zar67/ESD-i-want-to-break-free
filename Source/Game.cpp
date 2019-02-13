@@ -30,17 +30,18 @@ BreakoutGame::~BreakoutGame()
 
 void BreakoutGame::setUpBlock(int count, float x, float y)
 {
-    if (blocks[count].addSpriteComponent(renderer.get(),
-                    "Textures/puzzlepack/png/element_yellow_rectangle.png"))
-    {
-        blocks[count].spriteComponent()->getSprite()->xPos(x);
-        blocks[count].spriteComponent()->getSprite()->yPos(y);
-        std::cout << "Block " << count << " Sprite Set" << std::endl;
-    }
-    else
-    {
-        std::cout << "Block " << count << " Sprite NOT Set" << std::endl;
-    }
+  if (blocks[count].addSpriteComponent(renderer.get(),
+                                       "Textures/puzzlepack/png/"
+                                       "element_yellow_rectangle.png"))
+  {
+    blocks[count].spriteComponent()->getSprite()->xPos(x);
+    blocks[count].spriteComponent()->getSprite()->yPos(y);
+    std::cout << "Block " << count << " Sprite Set" << std::endl;
+  }
+  else
+  {
+    std::cout << "Block " << count << " Sprite NOT Set" << std::endl;
+  }
 }
 
 /**
@@ -60,47 +61,6 @@ bool BreakoutGame::init()
 
   renderer->setClearColour(ASGE::COLOURS::BLACK);
 
-  if (player.addSpriteComponent(renderer.get(),
-                                "Textures/puzzlepack/png/paddleBlue.png"))
-  {
-    std::cout << "Player Sprite Set" << std::endl;
-    player.spriteComponent()->getSprite()->xPos(280);
-    player.spriteComponent()->getSprite()->yPos(850);
-    player.speed(300.0f);
-  }
-  else
-  {
-      std::cout << "Player Sprite NOT Set" << std::endl;
-  }
-
-  if (ball.addSpriteComponent(renderer.get(), "Textures/puzzlepack/png/ballBlue.png"))
-  {
-      std::cout << "Ball Sprite Set" << std::endl;
-      ball.spriteComponent()->getSprite()->xPos(320);
-      ball.spriteComponent()->getSprite()->yPos(800);
-  }
-  else
-  {
-      std::cout << "Ball Sprite NOT Set" << std::endl;
-  }
-
-  int row = 0;
-  int column = 0;
-  for (int i = 0; i < 30; i++)
-  {
-      float x = float(row) * 100 + 35;
-      float y = float(column) * 50 + 30;
-      setUpBlock(i, x, y);
-
-      row++;
-      int extra = row % 6;
-      if (extra == 0)
-      {
-          row = 0;
-          column++;
-      }
-  }
-
   toggleFPS();
   renderer->setWindowTitle("Breakout!");
 
@@ -112,6 +72,54 @@ bool BreakoutGame::init()
 
   mouse_callback_id = inputs->addCallbackFnc(
     ASGE::E_MOUSE_CLICK, &BreakoutGame::clickHandler, this);
+
+  // Setup player
+  if (player.addSpriteComponent(renderer.get(),
+                                "Textures/puzzlepack/png/paddleBlue.png"))
+  {
+    std::cout << "Player Sprite Set" << std::endl;
+    player.spriteComponent()->getSprite()->xPos(280);
+    player.spriteComponent()->getSprite()->yPos(850);
+    player.speed(300.0f);
+  }
+  else
+  {
+    std::cout << "Player Sprite NOT Set" << std::endl;
+  }
+
+  // Setup ball
+  if (ball.addSpriteComponent(renderer.get(),
+                              "Textures/puzzlepack/png/ballBlue.png"))
+  {
+    std::cout << "Ball Sprite Set" << std::endl;
+    ball.spriteComponent()->getSprite()->xPos(320);
+    ball.spriteComponent()->getSprite()->yPos(800);
+    ball.speed(350.0f);
+    ball.direction(-1, -1);
+    ball.direction().normalise();
+  }
+  else
+  {
+    std::cout << "Ball Sprite NOT Set" << std::endl;
+  }
+
+  // Setup blocks
+  int row = 0;
+  int column = 0;
+  for (int i = 0; i < 30; i++)
+  {
+    float x = float(row) * 100 + 35;
+    float y = float(column) * 50 + 30;
+    setUpBlock(i, x, y);
+
+    row++;
+    int extra = row % 6;
+    if (extra == 0)
+    {
+      row = 0;
+      column++;
+    }
+  }
 
   return true;
 }
@@ -160,27 +168,27 @@ void BreakoutGame::keyHandler(const ASGE::SharedEventData data)
 
   if (!in_menu && key->key == ASGE::KEYS::KEY_A)
   {
-      if (key->action == ASGE::KEYS::KEY_RELEASED)
-      {
-          player.direction(0,0);
-      }
-      else
-      {
-          player.direction(-1,0);
-      }
+    if (key->action == ASGE::KEYS::KEY_RELEASED)
+    {
+      player.direction(0, 0);
+    }
+    else
+    {
+      player.direction(-1, 0);
+    }
   }
 
   else if (key->key == ASGE::KEYS::KEY_D)
+  {
+    if (key->action == ASGE::KEYS::KEY_RELEASED)
     {
-        if (key->action == ASGE::KEYS::KEY_RELEASED)
-        {
-            player.direction(0,0);
-        }
-        else
-        {
-            player.direction(1,0);
-        }
+      player.direction(0, 0);
     }
+    else
+    {
+      player.direction(1, 0);
+    }
+  }
 }
 
 /**
@@ -215,19 +223,59 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
 {
   if (!in_menu)
   {
-      // Move player
-      float new_x = player.spriteComponent()->getSprite()->xPos();
-      if (player.direction().x == -1 && player.spriteComponent()->getSprite()->xPos() > 0)
-      {
-          new_x = new_x - float((player.speed() *(game_time.delta_time.count()/ 1000.f)));
-      }
-      else if (player.direction().x == 1 && player.spriteComponent()->getSprite()->xPos() < float(game_width - 100))
-      {
-          new_x = new_x + float((player.speed() *(game_time.delta_time.count()/ 1000.f)));
-      }
+    // Move Player
+    float new_x = player.spriteComponent()->getSprite()->xPos();
+    if (player.direction().x == -1 &&
+        player.spriteComponent()->getSprite()->xPos() > 0)
+    {
+      new_x =
+        new_x - float(player.speed() * (game_time.delta_time.count() / 1000.f));
+    }
+    else if (player.direction().x == 1 &&
+             player.spriteComponent()->getSprite()->xPos() <
+               float(game_width - 100))
+    {
+      new_x =
+        new_x + float(player.speed() * (game_time.delta_time.count() / 1000.f));
+    }
 
-      player.spriteComponent()->getSprite()->xPos(new_x);
+    player.spriteComponent()->getSprite()->xPos(new_x);
 
+    // Move Ball
+    float ball_x = ball.spriteComponent()->getSprite()->xPos();
+    float ball_y = ball.spriteComponent()->getSprite()->yPos();
+
+    ball_x += float(ball.direction().x * ball.speed() *
+                    (game_time.delta_time.count() / 1000.f));
+    ball_y += float(ball.direction().y * ball.speed() *
+                    (game_time.delta_time.count() / 1000.f));
+
+    // Ball Collision Detection
+    if (ball_x < 0)
+    {
+      ball_x = 0;
+      ball.direction(ball.direction().x * -1, ball.direction().y);
+    }
+    else if (ball_x >
+             float(game_width) - ball.spriteComponent()->getSprite()->width())
+    {
+      ball_x = float(game_width) - ball.spriteComponent()->getSprite()->width();
+      ball.direction(ball.direction().x * -1, ball.direction().y);
+    }
+    if (ball_y < 0)
+    {
+      ball_y = 0;
+      ball.direction(ball.direction().x, ball.direction().y * -1);
+    }
+    else if (ball_y >
+             float(game_height) - ball.spriteComponent()->getSprite()->height())
+    {
+      // Loose life and respawn ball
+    }
+
+    // Set new ball position
+    ball.spriteComponent()->getSprite()->xPos(ball_x);
+    ball.spriteComponent()->getSprite()->yPos(ball_y);
   }
 
   // auto dt_sec = game_time.delta_time.count() / 1000.0;
@@ -256,10 +304,10 @@ void BreakoutGame::render(const ASGE::GameTime&)
 
     for (int i = 0; i < 30; i++)
     {
-        if (blocks[i].visibility())
-        {
-            renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
-        }
+      if (blocks[i].visibility())
+      {
+        renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
+      }
     }
   }
 }
