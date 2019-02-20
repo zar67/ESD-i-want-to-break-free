@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <math.h>
 
 #include <Engine/DebugPrinter.h>
 #include <Engine/Input.h>
@@ -8,6 +9,7 @@
 #include <Engine/Sprite.h>
 
 #include "Game.h"
+#include "Utility/Rect.h"
 #include "Utility/Rect.h"
 
 /**
@@ -94,9 +96,10 @@ bool BreakoutGame::init()
     std::cout << "Ball Sprite Set" << std::endl;
     ball.spriteComponent()->getSprite()->xPos(320);
     ball.spriteComponent()->getSprite()->yPos(800);
-    ball.speed(350.0f);
-    ball.direction(-1, -1);
-    ball.direction().normalise();
+    ball.speed(450.0f);
+    vector2 dir = vector2(-1, -1);
+    dir.normalise();
+    ball.direction(dir.x, dir.y);
   }
   else
   {
@@ -212,6 +215,20 @@ void BreakoutGame::clickHandler(const ASGE::SharedEventData data)
   ASGE::DebugPrinter{} << "y_pos: " << y_pos << std::endl;
 }
 
+void BreakoutGame::calculateNewDirection(float x, float size)
+{
+  float paddle_middle = player.spriteComponent()->getSprite()->xPos() +
+                        player.spriteComponent()->getSprite()->width() / 2;
+  float ball_intersect = paddle_middle - (x + (size / 2));
+  ball_intersect = (ball_intersect /
+                    (player.spriteComponent()->getSprite()->width() / 2));
+  double bounce_angle = ball_intersect * 1.0472;
+  vector2 new_dir = vector2(float(ball.speed() * sin(bounce_angle)),
+                            float(ball.speed() * cos(bounce_angle)));
+  new_dir.normalise();
+  ball.direction(new_dir.x, -new_dir.y);
+}
+
 void BreakoutGame::collisionDetection(float x, float y)
 {
   // Wall Collision
@@ -241,7 +258,7 @@ void BreakoutGame::collisionDetection(float x, float y)
   float bottom_y = y + ball.spriteComponent()->getSprite()->height();
   if (player.spriteComponent()->getBoundingBox().isInside(x,bottom_y))
   {
-      ball.direction(ball.direction().x, -ball.direction().y);
+      calculateNewDirection(x, ball.spriteComponent()->getSprite()->width());
   }
 }
 

@@ -21,6 +21,7 @@ class BreakoutGame : public ASGE::OGLGame
   void setupResolution();
   void setUpBlock(int count, float x, float y);
   void collisionDetection(float x, float y);
+  void calculateNewDirection(float x, float size);
 
   virtual void update(const ASGE::GameTime&) override;
   virtual void render(const ASGE::GameTime&) override;
