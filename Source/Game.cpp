@@ -231,7 +231,7 @@ void BreakoutGame::calculateNewDirection(float x, float size)
   ball.direction(new_dir.x, -new_dir.y);
 }
 
-void BreakoutGame::collisionDetection(float x, float y, float size)
+bool BreakoutGame::collisionDetection(float x, float y, float size)
 {
   // Wall Collision
   if (x < 0)
@@ -252,7 +252,8 @@ void BreakoutGame::collisionDetection(float x, float y, float size)
   else if (y >
            float(game_height) - size)
   {
-    // Loose life and re-spawn ball
+    lives--;
+    return false;
   }
 
   // Paddle Collision
@@ -294,6 +295,7 @@ void BreakoutGame::collisionDetection(float x, float y, float size)
       }
     }
   }
+  return true;
 }
 
 /**
@@ -305,8 +307,23 @@ void BreakoutGame::collisionDetection(float x, float y, float size)
  */
 void BreakoutGame::update(const ASGE::GameTime& game_time)
 {
-  if (!in_menu)
+  if (!in_menu && !gameover && !gamewon)
   {
+    if (lives <= 0)
+    {
+        gameover = true;
+    }
+
+    gamewon = true;
+    for (int i = 0; i < BLOCK_NUMBER; i++)
+    {
+      if (blocks[i].visibility())
+      {
+        gamewon = false;
+        break;
+      }
+    }
+
     // Move Player
     float new_x = player.spriteComponent()->getSprite()->xPos();
     if (player.direction().x == -1 &&
@@ -334,8 +351,16 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     ball_y += float(ball.direction().y * ball.speed() *
                     (game_time.delta_time.count() / 1000.f));
 
-    collisionDetection(ball_x, ball_y,
-                       ball.spriteComponent()->getSprite()->width());
+    if(!collisionDetection(ball_x, ball_y,
+                       ball.spriteComponent()->getSprite()->width()))
+    {
+      ball_x = 320;
+      ball_y = 800;
+
+      vector2 dir = vector2(-1, -1);
+      dir.normalise();
+      ball.direction(dir.x, dir.y);
+    }
 
     // Set new ball position
     ball.spriteComponent()->getSprite()->xPos(ball_x);
@@ -363,8 +388,20 @@ void BreakoutGame::render(const ASGE::GameTime&)
   }
   else
   {
+      if (gamewon)
+      {
+          renderer->renderText("Congratulations! You've won!", 170, 460);
+      }
+      else if (gameover)
+      {
+          renderer->renderText("You Lose", 300, 460);
+      }
     renderer->renderSprite(*player.spriteComponent()->getSprite());
     renderer->renderSprite(*ball.spriteComponent()->getSprite());
+
+    std::string lives_txt = "Lives: ";
+    lives_txt += std::to_string(lives);
+    renderer->renderText(lives_txt, 550, 25, 1, ASGE::COLOURS::WHITE);
 
     for (int i = 0; i < 30; i++)
     {

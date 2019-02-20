@@ -20,7 +20,7 @@ class BreakoutGame : public ASGE::OGLGame
   void clickHandler(const ASGE::SharedEventData data);
   void setupResolution();
   void setUpBlock(int count, float x, float y);
-  void collisionDetection(float x, float y, float size);
+  bool collisionDetection(float x, float y, float size);
   void calculateNewDirection(float x, float size);
 
   virtual void update(const ASGE::GameTime&) override;
@@ -35,4 +35,7 @@ class BreakoutGame : public ASGE::OGLGame
   GameObject blocks[30];
 
   bool in_menu = true;
+  bool gameover = false;
+  bool gamewon = false;
+  int lives = 3;
 };
