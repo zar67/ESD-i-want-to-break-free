@@ -12,6 +12,8 @@
 #include "Utility/Rect.h"
 #include "Utility/Rect.h"
 
+const int BLOCK_NUMBER = 30;
+
 /**
  *   @brief   Default Constructor.
  *   @details Consider setting the game's width and height
@@ -109,7 +111,7 @@ bool BreakoutGame::init()
   // Setup blocks
   int row = 0;
   int column = 0;
-  for (int i = 0; i < 30; i++)
+  for (int i = 0; i < BLOCK_NUMBER; i++)
   {
     float x = float(row) * 100 + 35;
     float y = float(column) * 50 + 30;
@@ -229,7 +231,7 @@ void BreakoutGame::calculateNewDirection(float x, float size)
   ball.direction(new_dir.x, -new_dir.y);
 }
 
-void BreakoutGame::collisionDetection(float x, float y)
+void BreakoutGame::collisionDetection(float x, float y, float size)
 {
   // Wall Collision
   if (x < 0)
@@ -237,10 +239,9 @@ void BreakoutGame::collisionDetection(float x, float y)
     x = 0;
     ball.direction(-ball.direction().x, ball.direction().y);
   }
-  else if (x >
-           float(game_width) - ball.spriteComponent()->getSprite()->width())
+  else if (x > float(game_width) - size)
   {
-    x = float(game_width) - ball.spriteComponent()->getSprite()->width();
+    x = float(game_width) - size;
     ball.direction(-ball.direction().x, ball.direction().y);
   }
   if (y < 0)
@@ -249,16 +250,49 @@ void BreakoutGame::collisionDetection(float x, float y)
     ball.direction(ball.direction().x, -ball.direction().y);
   }
   else if (y >
-           float(game_height) - ball.spriteComponent()->getSprite()->height())
+           float(game_height) - size)
   {
     // Loose life and re-spawn ball
   }
 
   // Paddle Collision
-  float bottom_y = y + ball.spriteComponent()->getSprite()->height();
-  if (player.spriteComponent()->getBoundingBox().isInside(x,bottom_y))
+  if (player.spriteComponent()->getBoundingBox().isInside(x, y + size))
   {
-      calculateNewDirection(x, ball.spriteComponent()->getSprite()->width());
+    calculateNewDirection(x, size);
+  }
+
+  // Block Collision
+  for (int i = 0; i < BLOCK_NUMBER; i++)
+  {
+    if (blocks[i].visibility() &&
+        blocks[i].spriteComponent()->getBoundingBox().isInside(x, y))
+    {
+      blocks[i].visibility(false);
+
+      if (y >= blocks[i].spriteComponent()->getSprite()->yPos() +
+               blocks[i].spriteComponent()->getSprite()->height())
+      {
+        ball.direction(ball.direction().x, -ball.direction().y);
+      }
+      else
+      {
+        ball.direction(-ball.direction().x, ball.direction().y);
+      }
+    }
+    else if (blocks[i].visibility() &&
+    blocks[i].spriteComponent()->getBoundingBox().isInside(x + size, y + size))
+    {
+      blocks[i].visibility(false);
+
+      if (y <= blocks[i].spriteComponent()->getSprite()->yPos())
+      {
+        ball.direction(ball.direction().x, -ball.direction().y);
+      }
+      else
+      {
+        ball.direction(-ball.direction().x, ball.direction().y);
+      }
+    }
   }
 }
 
@@ -300,7 +334,8 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     ball_y += float(ball.direction().y * ball.speed() *
                     (game_time.delta_time.count() / 1000.f));
 
-    collisionDetection(ball_x, ball_y);
+    collisionDetection(ball_x, ball_y,
+                       ball.spriteComponent()->getSprite()->width());
 
     // Set new ball position
     ball.spriteComponent()->getSprite()->xPos(ball_x);
