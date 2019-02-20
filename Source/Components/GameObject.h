@@ -57,5 +57,5 @@ class GameObject
 
   bool visible = true;
   float speed_;
-  vector2 velocity = vector2(0.0f,0.0f);
+  vector2 velocity = vector2(0.0f, 0.0f);
 };
