@@ -212,6 +212,39 @@ void BreakoutGame::clickHandler(const ASGE::SharedEventData data)
   ASGE::DebugPrinter{} << "y_pos: " << y_pos << std::endl;
 }
 
+void BreakoutGame::collisionDetection(float x, float y)
+{
+  // Wall Collision
+  if (x < 0)
+  {
+    x = 0;
+    ball.direction(-ball.direction().x, ball.direction().y);
+  }
+  else if (x >
+           float(game_width) - ball.spriteComponent()->getSprite()->width())
+  {
+    x = float(game_width) - ball.spriteComponent()->getSprite()->width();
+    ball.direction(-ball.direction().x, ball.direction().y);
+  }
+  if (y < 0)
+  {
+    y = 0;
+    ball.direction(ball.direction().x, -ball.direction().y);
+  }
+  else if (y >
+           float(game_height) - ball.spriteComponent()->getSprite()->height())
+  {
+    // Loose life and re-spawn ball
+  }
+
+  // Paddle Collision
+  float bottom_y = y + ball.spriteComponent()->getSprite()->height();
+  if (player.spriteComponent()->getBoundingBox().isInside(x,bottom_y))
+  {
+      ball.direction(ball.direction().x, -ball.direction().y);
+  }
+}
+
 /**
  *   @brief   Updates the scene
  *   @details Prepares the renderer subsystem before drawing the
@@ -250,28 +283,7 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     ball_y += float(ball.direction().y * ball.speed() *
                     (game_time.delta_time.count() / 1000.f));
 
-    // Ball Collision Detection
-    if (ball_x < 0)
-    {
-      ball_x = 0;
-      ball.direction(ball.direction().x * -1, ball.direction().y);
-    }
-    else if (ball_x >
-             float(game_width) - ball.spriteComponent()->getSprite()->width())
-    {
-      ball_x = float(game_width) - ball.spriteComponent()->getSprite()->width();
-      ball.direction(ball.direction().x * -1, ball.direction().y);
-    }
-    if (ball_y < 0)
-    {
-      ball_y = 0;
-      ball.direction(ball.direction().x, ball.direction().y * -1);
-    }
-    else if (ball_y >
-             float(game_height) - ball.spriteComponent()->getSprite()->height())
-    {
-      // Loose life and respawn ball
-    }
+    collisionDetection(ball_x, ball_y);
 
     // Set new ball position
     ball.spriteComponent()->getSprite()->xPos(ball_x);

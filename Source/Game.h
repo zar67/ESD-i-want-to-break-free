@@ -20,6 +20,7 @@ class BreakoutGame : public ASGE::OGLGame
   void clickHandler(const ASGE::SharedEventData data);
   void setupResolution();
   void setUpBlock(int count, float x, float y);
+  void collisionDetection(float x, float y);
 
   virtual void update(const ASGE::GameTime&) override;
   virtual void render(const ASGE::GameTime&) override;
