@@ -1,6 +1,6 @@
 #include <iostream>
-#include <string>
 #include <math.h>
+#include <string>
 
 #include <Engine/DebugPrinter.h>
 #include <Engine/Input.h>
@@ -9,7 +9,6 @@
 #include <Engine/Sprite.h>
 
 #include "Game.h"
-#include "Utility/Rect.h"
 #include "Utility/Rect.h"
 
 const int BLOCK_NUMBER = 30;
@@ -222,8 +221,8 @@ void BreakoutGame::calculateNewDirection(float x, float size)
   float paddle_middle = player.spriteComponent()->getSprite()->xPos() +
                         player.spriteComponent()->getSprite()->width() / 2;
   float ball_intersect = paddle_middle - (x + (size / 2));
-  ball_intersect = (ball_intersect /
-                    (player.spriteComponent()->getSprite()->width() / 2));
+  ball_intersect =
+    (ball_intersect / (player.spriteComponent()->getSprite()->width() / 2));
   double bounce_angle = ball_intersect * 1.0472;
   vector2 new_dir = vector2(float(ball.speed() * sin(bounce_angle)),
                             float(ball.speed() * cos(bounce_angle)));
@@ -249,8 +248,7 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
     y = 0;
     ball.direction(ball.direction().x, -ball.direction().y);
   }
-  else if (y >
-           float(game_height) - size)
+  else if (y > float(game_height) - size)
   {
     lives--;
     return false;
@@ -271,7 +269,7 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
       blocks[i].visibility(false);
 
       if (y >= blocks[i].spriteComponent()->getSprite()->yPos() +
-               blocks[i].spriteComponent()->getSprite()->height())
+                 blocks[i].spriteComponent()->getSprite()->height())
       {
         ball.direction(ball.direction().x, -ball.direction().y);
       }
@@ -281,7 +279,8 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
       }
     }
     else if (blocks[i].visibility() &&
-    blocks[i].spriteComponent()->getBoundingBox().isInside(x + size, y + size))
+             blocks[i].spriteComponent()->getBoundingBox().isInside(x + size,
+                                                                    y + size))
     {
       blocks[i].visibility(false);
 
@@ -311,7 +310,7 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
   {
     if (lives <= 0)
     {
-        gameover = true;
+      gameover = true;
     }
 
     gamewon = true;
@@ -352,7 +351,7 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
                     (game_time.delta_time.count() / 1000.f));
 
     if(!collisionDetection(ball_x, ball_y,
-                       ball.spriteComponent()->getSprite()->width()))
+         ball.spriteComponent()->getSprite()->width()))
     {
       ball_x = 320;
       ball_y = 800;
@@ -388,14 +387,14 @@ void BreakoutGame::render(const ASGE::GameTime&)
   }
   else
   {
-      if (gamewon)
-      {
-          renderer->renderText("Congratulations! You've won!", 170, 460);
-      }
-      else if (gameover)
-      {
-          renderer->renderText("You Lose", 300, 460);
-      }
+    if (gamewon)
+    {
+       renderer->renderText("Congratulations! You've won!", 170, 460);
+    }
+    else if (gameover)
+    {
+       renderer->renderText("You Lose", 300, 460);
+    }
     renderer->renderSprite(*player.spriteComponent()->getSprite());
     renderer->renderSprite(*ball.spriteComponent()->getSprite());
 
