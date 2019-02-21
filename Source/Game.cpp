@@ -350,8 +350,8 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     ball_y += float(ball.direction().y * ball.speed() *
                     (game_time.delta_time.count() / 1000.f));
 
-    if(!collisionDetection(ball_x, ball_y,
-         ball.spriteComponent()->getSprite()->width()))
+    if (!collisionDetection(
+          ball_x, ball_y, ball.spriteComponent()->getSprite()->width()))
     {
       ball_x = 320;
       ball_y = 800;
@@ -389,11 +389,11 @@ void BreakoutGame::render(const ASGE::GameTime&)
   {
     if (gamewon)
     {
-       renderer->renderText("Congratulations! You've won!", 170, 460);
+      renderer->renderText("Congratulations! You've won!", 170, 460);
     }
     else if (gameover)
     {
-       renderer->renderText("You Lose", 300, 460);
+      renderer->renderText("You Lose", 300, 460);
     }
     renderer->renderSprite(*player.spriteComponent()->getSprite());
     renderer->renderSprite(*ball.spriteComponent()->getSprite());
