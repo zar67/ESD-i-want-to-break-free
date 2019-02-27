@@ -12,6 +12,7 @@
 #include "Utility/Rect.h"
 
 const int BLOCK_NUMBER = 30;
+const int GEM_NUMBER = 3;
 
 /**
  *   @brief   Default Constructor.
@@ -44,6 +45,21 @@ void BreakoutGame::setUpBlock(int count, float x, float y)
   else
   {
     std::cout << "Block " << count << " Sprite NOT Set" << std::endl;
+  }
+}
+
+void BreakoutGame::setupGem(
+  int count, std::string sprite, float x, float y, float speed)
+{
+  if (gems[count].addSpriteComponent(renderer.get(), sprite))
+  {
+    gems[count].spriteComponent()->getSprite()->xPos(x);
+    gems[count].spriteComponent()->getSprite()->yPos(y);
+    gems[count].speed(speed);
+    vector2 dir = vector2(0, -1);
+    dir.normalise();
+    gems[count].direction(dir.x, dir.y);
+    gems[count].visibility(false);
   }
 }
 
@@ -124,6 +140,23 @@ bool BreakoutGame::init()
       column++;
     }
   }
+
+  // Setup gems
+  setupGem(0,
+           "Textures/puzzlepack/png/element_purple_polygon.png",
+           100.0f,
+           -50.0f,
+           150.0f);
+  setupGem(1,
+           "Textures/puzzlepack/png/element_red_polygon.png",
+           300.0f,
+           -50.0f,
+           150.0f);
+  setupGem(2,
+           "Textures/puzzlepack/png/element_yellow_polygon.png",
+           500.0f,
+           -50.0f,
+           150.0f);
 
   return true;
 }
@@ -267,6 +300,7 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
         blocks[i].spriteComponent()->getBoundingBox().isInside(x, y))
     {
       blocks[i].visibility(false);
+      score += 1;
 
       if (y >= blocks[i].spriteComponent()->getSprite()->yPos() +
                  blocks[i].spriteComponent()->getSprite()->height())
@@ -283,6 +317,7 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
                                                                     y + size))
     {
       blocks[i].visibility(false);
+      score += 1;
 
       if (y <= blocks[i].spriteComponent()->getSprite()->yPos())
       {
@@ -320,6 +355,40 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
       {
         gamewon = false;
         break;
+      }
+    }
+
+    // Release gems
+    if (game_time.game_time.count() > 5000 &&
+        game_time.game_time.count() < 6000)
+    {
+      gems[0].visibility(true);
+    }
+    if (game_time.game_time.count() > 7000 &&
+        game_time.game_time.count() < 8000)
+    {
+      gems[1].visibility(true);
+    }
+    if (game_time.game_time.count() > 9000 &&
+        game_time.game_time.count() < 10000)
+    {
+      gems[2].visibility(true);
+    }
+
+    // Gem Collision Detection
+    for (int i = 0; i < GEM_NUMBER; i++)
+    {
+      if (gems[i].spriteComponent()->getBoundingBox().isInside(
+            player.spriteComponent()->getBoundingBox()))
+      {
+        gems[i].visibility(false);
+        gems[i].spriteComponent()->getSprite()->yPos(-50);
+        score += 10;
+      }
+      if (gems[i].spriteComponent()->getSprite()->yPos() > float(game_height))
+      {
+        gems[i].visibility(false);
+        gems[i].spriteComponent()->getSprite()->yPos(-50);
       }
     }
 
@@ -364,6 +433,18 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     // Set new ball position
     ball.spriteComponent()->getSprite()->xPos(ball_x);
     ball.spriteComponent()->getSprite()->yPos(ball_y);
+
+    // Update Gems
+    for (int i = 0; i < GEM_NUMBER; i++)
+    {
+      if (gems[i].visibility())
+      {
+        float current_y = gems[i].spriteComponent()->getSprite()->yPos();
+        current_y -= float(gems[i].direction().y * gems[i].speed() *
+                           (game_time.delta_time.count() / 1000.f));
+        gems[i].spriteComponent()->getSprite()->yPos(current_y);
+      }
+    }
   }
 
   // auto dt_sec = game_time.delta_time.count() / 1000.0;
@@ -387,6 +468,22 @@ void BreakoutGame::render(const ASGE::GameTime&)
   }
   else
   {
+    for (int i = 0; i < BLOCK_NUMBER; i++)
+    {
+      if (blocks[i].visibility())
+      {
+        renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
+      }
+    }
+
+    for (int i = 0; i < GEM_NUMBER; i++)
+    {
+      if (gems[i].visibility())
+      {
+        renderer->renderSprite(*gems[i].spriteComponent()->getSprite());
+      }
+    }
+
     if (gamewon)
     {
       renderer->renderText("Congratulations! You've won!", 170, 460);
@@ -402,12 +499,8 @@ void BreakoutGame::render(const ASGE::GameTime&)
     lives_txt += std::to_string(lives);
     renderer->renderText(lives_txt, 550, 25, 1, ASGE::COLOURS::WHITE);
 
-    for (int i = 0; i < 30; i++)
-    {
-      if (blocks[i].visibility())
-      {
-        renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
-      }
-    }
+    std::string score_txt = "Score: ";
+    score_txt += std::to_string(score);
+    renderer->renderText(score_txt, 525, 50, 1, ASGE::COLOURS::WHITE);
   }
 }
