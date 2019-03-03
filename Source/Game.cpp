@@ -213,6 +213,26 @@ bool BreakoutGame::init()
                 -50.0f,
                 150.0f);
 
+  // Shots setup
+  for (int i = 0; i < 5; i++)
+  {
+    if (shots[i].addSpriteComponent(renderer.get(), "Textures/puzzlepack/png/particleStar.png"))
+    {
+      std::cout << "Shot Sprite set" << std::endl;
+      shots[i].spriteComponent()->getSprite()->xPos(0);
+      shots[i].spriteComponent()->getSprite()->yPos(0);
+      shots[i].speed(200);
+      vector2 dir = vector2(0, 1);
+      dir.normalise();
+      shots[i].direction(dir.x, dir.y);
+      shots[i].visibility(false);
+    }
+    else
+    {
+      std::cout << "Shot Sprite NOT set" << std::endl;
+    }
+  }
+
   return true;
 }
 
@@ -279,6 +299,24 @@ void BreakoutGame::keyHandler(const ASGE::SharedEventData data)
     else
     {
       player.direction(1, 0);
+    }
+  }
+
+  else if (key->key == ASGE::KEYS::KEY_SPACE)
+  {
+    if (key->action == ASGE::KEYS::KEY_PRESSED && player.canShoot())
+    {
+      std::cout << "SHOOTING" << std::endl;
+      for (int i = 0; i < 5; i++)
+      {
+        if (!shots[i].visibility())
+        {
+          shots[i].visibility(true);
+          shots[i].spriteComponent()->getSprite()->xPos(player.spriteComponent()->getSprite()->xPos() + (player.spriteComponent()->getSprite()->width()/2));
+          shots[i].spriteComponent()->getSprite()->yPos(player.spriteComponent()->getSprite()->yPos() - 10);
+          break;
+        }
+      }
     }
   }
 }
@@ -429,6 +467,13 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
       }
     }
 
+    // Shot Timer
+    if (double(game_time.game_time.count()) >= player.shootTimer())
+    {
+      player.canShoot(false);
+      player.shootTimer(0);
+    }
+
     // Release gems
     if (game_time.game_time.count() > 5000 &&
         game_time.game_time.count() < 6000)
@@ -450,7 +495,7 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     for (int i = 0; i < GEM_NUMBER; i++)
     {
       if (gems[i].spriteComponent()->getBoundingBox().isInside(
-            player.spriteComponent()->getBoundingBox()))
+              player.spriteComponent()->getBoundingBox()) && gems[i].visibility())
       {
         gems[i].visibility(false);
         gems[i].spriteComponent()->getSprite()->yPos(-50);
@@ -460,6 +505,39 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
       {
         gems[i].visibility(false);
         gems[i].spriteComponent()->getSprite()->yPos(-50);
+      }
+    }
+
+    // Power Up Collision Detection
+    for (int i = 0; i < 3; i++)
+    {
+      if (power_ups[i].spriteComponent()->getBoundingBox().isInside(
+              player.spriteComponent()->getBoundingBox()) && power_ups[i].visibility())
+      {
+        power_ups[i].visibility(false);
+        power_ups[i].spriteComponent()->getSprite()->yPos(-50);
+        score += 10;
+        player.canShoot(true);
+        player.shootTimer(float(game_time.game_time.count()) + 4000);
+      }
+      if (power_ups[i].spriteComponent()->getSprite()->yPos() > float(game_height))
+      {
+        power_ups[i].visibility(false);
+        power_ups[i].spriteComponent()->getSprite()->yPos(-50);
+      }
+    }
+
+    // Shot Collision Detection
+    for (int i = 0; i < 5; i++)
+    {
+      for (int j = 0; j < BLOCK_NUMBER; j++)
+      {
+        if (shots[i].spriteComponent()->getBoundingBox().isInside(blocks[j].spriteComponent()->getBoundingBox()) && shots[i].visibility() && blocks[j].visibility())
+        {
+          blocks[j].visibility(false);
+          shots[i].visibility(false);
+          score += 5;
+        }
       }
     }
 
@@ -528,6 +606,18 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
         power_ups[i].spriteComponent()->getSprite()->yPos(current_y);
       }
     }
+
+    // Update Shots
+    for (int i = 0; i < 5; i++)
+    {
+      if (shots[i].visibility())
+      {
+        float current_y = shots[i].spriteComponent()->getSprite()->yPos();
+        current_y -= float(shots[i].direction().y * shots[i].speed() *
+                           (game_time.delta_time.count() / 1000.f));
+        shots[i].spriteComponent()->getSprite()->yPos(current_y);
+      }
+    }
   }
 
   // auto dt_sec = game_time.delta_time.count() / 1000.0;
@@ -572,6 +662,14 @@ void BreakoutGame::render(const ASGE::GameTime&)
       if (power_ups[i].visibility())
       {
         renderer->renderSprite(*power_ups[i].spriteComponent()->getSprite());
+      }
+    }
+
+    for (int i = 0; i < 5; i++)
+    {
+      if (shots[i].visibility())
+      {
+        renderer->renderSprite(*shots[i].spriteComponent()->getSprite());
       }
     }
 
