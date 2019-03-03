@@ -32,11 +32,12 @@ BreakoutGame::~BreakoutGame()
     static_cast<unsigned int>(mouse_callback_id));
 }
 
-void BreakoutGame::setUpBlock(int count, float x, float y)
+void BreakoutGame::setUpBlock(int count,
+                              float x,
+                              float y,
+                              const std::string& sprite)
 {
-  if (blocks[count].addSpriteComponent(renderer.get(),
-                                       "Textures/puzzlepack/png/"
-                                       "element_yellow_rectangle.png"))
+  if (blocks[count].addSpriteComponent(renderer.get(), sprite))
   {
     blocks[count].spriteComponent()->getSprite()->xPos(x);
     blocks[count].spriteComponent()->getSprite()->yPos(y);
@@ -53,6 +54,7 @@ void BreakoutGame::setupGem(
 {
   if (gems[count].addSpriteComponent(renderer.get(), sprite))
   {
+    std::cout << "Gem Sprite set" << std::endl;
     gems[count].spriteComponent()->getSprite()->xPos(x);
     gems[count].spriteComponent()->getSprite()->yPos(y);
     gems[count].speed(speed);
@@ -60,6 +62,30 @@ void BreakoutGame::setupGem(
     dir.normalise();
     gems[count].direction(dir.x, dir.y);
     gems[count].visibility(false);
+  }
+  else
+  {
+    std::cout << "Gem Sprite NOT set" << std::endl;
+  }
+}
+
+void BreakoutGame::setupPowerUps(
+  int count, std::string sprite, float x, float y, float speed)
+{
+  if (power_ups[count].addSpriteComponent(renderer.get(), sprite))
+  {
+    std::cout << "Power Up Sprite set" << std::endl;
+    power_ups[count].spriteComponent()->getSprite()->xPos(x);
+    power_ups[count].spriteComponent()->getSprite()->yPos(y);
+    power_ups[count].speed(speed);
+    vector2 dir = vector2(0, -1);
+    dir.normalise();
+    power_ups[count].direction(dir.x, dir.y);
+    power_ups[count].visibility(false);
+  }
+  else
+  {
+    std::cout << "Power Up Sprite NOT set" << std::endl;
   }
 }
 
@@ -130,7 +156,17 @@ bool BreakoutGame::init()
   {
     float x = float(row) * 100 + 35;
     float y = float(column) * 50 + 30;
-    setUpBlock(i, x, y);
+
+    if (i % 8 == 0)
+    {
+      setUpBlock(
+        i, x, y, "Textures/puzzlepack/png/element_purple_rectangle.png");
+    }
+    else
+    {
+      setUpBlock(
+        i, x, y, "Textures/puzzlepack/png/element_yellow_rectangle.png");
+    }
 
     row++;
     int extra = row % 6;
@@ -157,6 +193,25 @@ bool BreakoutGame::init()
            500.0f,
            -50.0f,
            150.0f);
+
+  // Setup Powerups
+  setupPowerUps(0,
+                "Textures/puzzlepack/png/element_green_square.png",
+                500.0f,
+                -50.0f,
+                150.0f);
+
+  setupPowerUps(1,
+                "Textures/puzzlepack/png/element_green_square.png",
+                500.0f,
+                -50.0f,
+                150.0f);
+
+  setupPowerUps(2,
+                "Textures/puzzlepack/png/element_green_square.png",
+                500.0f,
+                -50.0f,
+                150.0f);
 
   return true;
 }
@@ -287,6 +342,9 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
     return false;
   }
 
+  ball.spriteComponent()->getSprite()->xPos(x);
+  ball.spriteComponent()->getSprite()->yPos(y);
+
   // Paddle Collision
   if (player.spriteComponent()->getBoundingBox().isInside(x, y + size))
   {
@@ -300,7 +358,20 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
         blocks[i].spriteComponent()->getBoundingBox().isInside(x, y))
     {
       blocks[i].visibility(false);
-      score += 1;
+      if (i % 8 == 0)
+      {
+        // Hit powerup block
+        int power_up_number = i / 10;
+        power_ups[power_up_number].spriteComponent()->getSprite()->xPos(
+          blocks[i].spriteComponent()->getSprite()->xPos());
+        power_ups[power_up_number].spriteComponent()->getSprite()->yPos(
+          blocks[i].spriteComponent()->getSprite()->yPos());
+        power_ups[power_up_number].visibility(true);
+      }
+      else
+      {
+        score += 1;
+      }
 
       if (y >= blocks[i].spriteComponent()->getSprite()->yPos() +
                  blocks[i].spriteComponent()->getSprite()->height())
@@ -445,6 +516,18 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
         gems[i].spriteComponent()->getSprite()->yPos(current_y);
       }
     }
+
+    // Update Power Ups
+    for (int i = 0; i < 3; i++)
+    {
+      if (power_ups[i].visibility())
+      {
+        float current_y = power_ups[i].spriteComponent()->getSprite()->yPos();
+        current_y -= float(power_ups[i].direction().y * power_ups[i].speed() *
+                           (game_time.delta_time.count() / 1000.f));
+        power_ups[i].spriteComponent()->getSprite()->yPos(current_y);
+      }
+    }
   }
 
   // auto dt_sec = game_time.delta_time.count() / 1000.0;
@@ -481,6 +564,14 @@ void BreakoutGame::render(const ASGE::GameTime&)
       if (gems[i].visibility())
       {
         renderer->renderSprite(*gems[i].spriteComponent()->getSprite());
+      }
+    }
+
+    for (int i = 0; i < 3; i++)
+    {
+      if (power_ups[i].visibility())
+      {
+        renderer->renderSprite(*power_ups[i].spriteComponent()->getSprite());
       }
     }
 

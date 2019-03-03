@@ -19,8 +19,10 @@ class BreakoutGame : public ASGE::OGLGame
   void keyHandler(const ASGE::SharedEventData data);
   void clickHandler(const ASGE::SharedEventData data);
   void setupResolution();
-  void setUpBlock(int count, float x, float y);
+  void setUpBlock(int count, float x, float y, const std::string& sprite);
   void setupGem(int count, std::string sprite, float x, float y, float speed);
+  void
+  setupPowerUps(int count, std::string sprite, float x, float y, float speed);
   bool collisionDetection(float x, float y, float size);
   void calculateNewDirection(float x, float size);
 
@@ -35,6 +37,7 @@ class BreakoutGame : public ASGE::OGLGame
   GameObject ball;
   GameObject blocks[30];
   GameObject gems[3];
+  GameObject power_ups[3];
 
   bool in_menu = true;
   bool gameover = false;
