@@ -40,7 +40,6 @@ class BreakoutGame : public ASGE::OGLGame
   GameObject power_ups[3];
   GameObject shots[5];
 
-
   bool in_menu = true;
   bool gameover = false;
   bool gamewon = false;

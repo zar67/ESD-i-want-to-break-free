@@ -216,7 +216,8 @@ bool BreakoutGame::init()
   // Shots setup
   for (int i = 0; i < 5; i++)
   {
-    if (shots[i].addSpriteComponent(renderer.get(), "Textures/puzzlepack/png/particleStar.png"))
+    if (shots[i].addSpriteComponent(renderer.get(),
+                                    "Textures/puzzlepack/png/particleStar.png"))
     {
       std::cout << "Shot Sprite set" << std::endl;
       shots[i].spriteComponent()->getSprite()->xPos(0);
@@ -306,14 +307,16 @@ void BreakoutGame::keyHandler(const ASGE::SharedEventData data)
   {
     if (key->action == ASGE::KEYS::KEY_PRESSED && player.canShoot())
     {
-      std::cout << "SHOOTING" << std::endl;
       for (int i = 0; i < 5; i++)
       {
         if (!shots[i].visibility())
         {
           shots[i].visibility(true);
-          shots[i].spriteComponent()->getSprite()->xPos(player.spriteComponent()->getSprite()->xPos() + (player.spriteComponent()->getSprite()->width()/2));
-          shots[i].spriteComponent()->getSprite()->yPos(player.spriteComponent()->getSprite()->yPos() - 10);
+          shots[i].spriteComponent()->getSprite()->xPos(
+            player.spriteComponent()->getSprite()->xPos() +
+            (player.spriteComponent()->getSprite()->width() / 2));
+          shots[i].spriteComponent()->getSprite()->yPos(
+            player.spriteComponent()->getSprite()->yPos() - 10);
           break;
         }
       }
@@ -495,7 +498,8 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     for (int i = 0; i < GEM_NUMBER; i++)
     {
       if (gems[i].spriteComponent()->getBoundingBox().isInside(
-              player.spriteComponent()->getBoundingBox()) && gems[i].visibility())
+            player.spriteComponent()->getBoundingBox()) &&
+          gems[i].visibility())
       {
         gems[i].visibility(false);
         gems[i].spriteComponent()->getSprite()->yPos(-50);
@@ -512,7 +516,8 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     for (int i = 0; i < 3; i++)
     {
       if (power_ups[i].spriteComponent()->getBoundingBox().isInside(
-              player.spriteComponent()->getBoundingBox()) && power_ups[i].visibility())
+            player.spriteComponent()->getBoundingBox()) &&
+          power_ups[i].visibility())
       {
         power_ups[i].visibility(false);
         power_ups[i].spriteComponent()->getSprite()->yPos(-50);
@@ -520,7 +525,8 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
         player.canShoot(true);
         player.shootTimer(float(game_time.game_time.count()) + 4000);
       }
-      if (power_ups[i].spriteComponent()->getSprite()->yPos() > float(game_height))
+      if (power_ups[i].spriteComponent()->getSprite()->yPos() >
+          float(game_height))
       {
         power_ups[i].visibility(false);
         power_ups[i].spriteComponent()->getSprite()->yPos(-50);
@@ -532,7 +538,9 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     {
       for (int j = 0; j < BLOCK_NUMBER; j++)
       {
-        if (shots[i].spriteComponent()->getBoundingBox().isInside(blocks[j].spriteComponent()->getBoundingBox()) && shots[i].visibility() && blocks[j].visibility())
+        if (shots[i].spriteComponent()->getBoundingBox().isInside(
+              blocks[j].spriteComponent()->getBoundingBox()) &&
+            shots[i].visibility() && blocks[j].visibility())
         {
           blocks[j].visibility(false);
           shots[i].visibility(false);

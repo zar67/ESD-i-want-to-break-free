@@ -70,7 +70,7 @@ void GameObject::canShoot(bool s)
 
 bool GameObject::canShoot()
 {
-    return can_shoot;
+  return can_shoot;
 }
 
 void GameObject::shootTimer(float t)
