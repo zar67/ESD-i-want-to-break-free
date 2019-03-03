@@ -51,11 +51,19 @@ class GameObject
   vector2 direction();
   void direction(float x_, float y_);
 
+  void canShoot(bool s);
+  bool canShoot();
+
+  void shootTimer(float t);
+  float shootTimer();
+
  private:
   void free();
   SpriteComponent* sprite_component = nullptr;
 
   bool visible = true;
+  bool can_shoot = false;
+  double shoot_timer = 0.0f;
   float speed_;
   vector2 velocity = vector2(0.0f, 0.0f);
 };

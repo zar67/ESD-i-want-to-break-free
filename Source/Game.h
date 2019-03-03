@@ -38,6 +38,8 @@ class BreakoutGame : public ASGE::OGLGame
   GameObject blocks[30];
   GameObject gems[3];
   GameObject power_ups[3];
+  GameObject shots[5];
+
 
   bool in_menu = true;
   bool gameover = false;

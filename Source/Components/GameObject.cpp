@@ -62,3 +62,23 @@ void GameObject::direction(float x_, float y_)
   velocity.x = x_;
   velocity.y = y_;
 }
+
+void GameObject::canShoot(bool s)
+{
+  can_shoot = s;
+}
+
+bool GameObject::canShoot()
+{
+    return can_shoot;
+}
+
+void GameObject::shootTimer(float t)
+{
+  shoot_timer = t;
+}
+
+float GameObject::shootTimer()
+{
+  return float(shoot_timer);
+}
