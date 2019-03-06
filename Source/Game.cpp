@@ -11,9 +11,6 @@
 #include "Game.h"
 #include "Utility/Rect.h"
 
-const int BLOCK_NUMBER = 30;
-const int GEM_NUMBER = 3;
-
 /**
  *   @brief   Default Constructor.
  *   @details Consider setting the game's width and height
@@ -49,46 +46,6 @@ void BreakoutGame::setUpBlock(int count,
   }
 }
 
-void BreakoutGame::setupGem(
-  int count, std::string sprite, float x, float y, float speed)
-{
-  if (gems[count].addSpriteComponent(renderer.get(), sprite))
-  {
-    std::cout << "Gem Sprite set" << std::endl;
-    gems[count].spriteComponent()->getSprite()->xPos(x);
-    gems[count].spriteComponent()->getSprite()->yPos(y);
-    gems[count].speed(speed);
-    vector2 dir = vector2(0, -1);
-    dir.normalise();
-    gems[count].direction(dir.x, dir.y);
-    gems[count].visibility(false);
-  }
-  else
-  {
-    std::cout << "Gem Sprite NOT set" << std::endl;
-  }
-}
-
-void BreakoutGame::setupPowerUps(
-  int count, std::string sprite, float x, float y, float speed)
-{
-  if (power_ups[count].addSpriteComponent(renderer.get(), sprite))
-  {
-    std::cout << "Power Up Sprite set" << std::endl;
-    power_ups[count].spriteComponent()->getSprite()->xPos(x);
-    power_ups[count].spriteComponent()->getSprite()->yPos(y);
-    power_ups[count].speed(speed);
-    vector2 dir = vector2(0, -1);
-    dir.normalise();
-    power_ups[count].direction(dir.x, dir.y);
-    power_ups[count].visibility(false);
-  }
-  else
-  {
-    std::cout << "Power Up Sprite NOT set" << std::endl;
-  }
-}
-
 /**
  *   @brief   Initialises the game.
  *   @details The game window is created and all assets required to
@@ -98,6 +55,7 @@ void BreakoutGame::setupPowerUps(
  */
 bool BreakoutGame::init()
 {
+  std::srand(static_cast<unsigned int>(time(nullptr)));
   setupResolution();
   if (!initAPI())
   {
@@ -178,43 +136,52 @@ bool BreakoutGame::init()
   }
 
   // Setup gems
-  setupGem(0,
-           "Textures/puzzlepack/png/element_purple_polygon.png",
-           100.0f,
-           -50.0f,
-           150.0f);
-  setupGem(1,
-           "Textures/puzzlepack/png/element_red_polygon.png",
-           300.0f,
-           -50.0f,
-           150.0f);
-  setupGem(2,
-           "Textures/puzzlepack/png/element_yellow_polygon.png",
-           500.0f,
-           -50.0f,
-           150.0f);
+  for (int i = 0; i < GEM_NUMBER; i++)
+  {
+    if (gems[i].addSpriteComponent(renderer.get(),
+                                   "Textures/puzzlepack/png/"
+                                   "element_red_polygon.png"))
+    {
+      std::cout << "Gem Sprite set" << std::endl;
+      gems[i].spriteComponent()->getSprite()->xPos(0);
+      gems[i].spriteComponent()->getSprite()->yPos(-50);
 
-  // Setup Powerups
-  setupPowerUps(0,
-                "Textures/puzzlepack/png/element_green_square.png",
-                500.0f,
-                -50.0f,
-                150.0f);
+      gems[i].speed(150);
+      vector2 dir = vector2(0, -1);
+      dir.normalise();
+      gems[i].direction(dir.x, dir.y);
+      gems[i].visibility(false);
+    }
+    else
+    {
+      std::cout << "Gem Sprite NOT set" << std::endl;
+    }
+  }
 
-  setupPowerUps(1,
-                "Textures/puzzlepack/png/element_green_square.png",
-                500.0f,
-                -50.0f,
-                150.0f);
-
-  setupPowerUps(2,
-                "Textures/puzzlepack/png/element_green_square.png",
-                500.0f,
-                -50.0f,
-                150.0f);
+  // Setup Power-ups
+  for (int i = 0; i < POWER_UP_NUMBER; i++)
+  {
+    if (power_ups[i].addSpriteComponent(renderer.get(),
+                                        "Textures/puzzlepack/png/"
+                                        "element_green_square.png"))
+    {
+      std::cout << "Power Up Sprite set" << std::endl;
+      power_ups[i].spriteComponent()->getSprite()->xPos(0);
+      power_ups[i].spriteComponent()->getSprite()->yPos(0);
+      power_ups[i].speed(150);
+      vector2 dir = vector2(0, -1);
+      dir.normalise();
+      power_ups[i].direction(dir.x, dir.y);
+      power_ups[i].visibility(false);
+    }
+    else
+    {
+      std::cout << "Power Up Sprite NOT set" << std::endl;
+    }
+  }
 
   // Shots setup
-  for (int i = 0; i < 5; i++)
+  for (int i = 0; i < SHOT_NUMBER; i++)
   {
     if (shots[i].addSpriteComponent(renderer.get(),
                                     "Textures/puzzlepack/png/particleStar.png"))
@@ -249,7 +216,7 @@ void BreakoutGame::setupResolution()
   // how will you calculate the game's resolution?
   // will it scale correctly in full screen? what AR will you use?
   // how will the game be framed in native 16:9 resolutions?
-  // here are some abritrary values for you to adjust as you see fit
+  // here are some arbitrary values for you to adjust as you see fit
   // https://www.gamasutra.com/blogs/KenanBolukbasi/20171002/306822/Scaling_and_MultiResolution_in_2D_Games.php
   game_width = 640;
   game_height = 920;
@@ -274,12 +241,17 @@ void BreakoutGame::keyHandler(const ASGE::SharedEventData data)
     signalExit();
   }
 
-  if (key->key == ASGE::KEYS::KEY_ENTER)
+  else if (in_menu && key->key == ASGE::KEYS::KEY_ENTER)
   {
     in_menu = false;
   }
 
-  if (!in_menu && key->key == ASGE::KEYS::KEY_A)
+  else if (!in_menu && key->key == ASGE::KEYS::KEY_ENTER)
+  {
+    restartGame();
+  }
+
+  else if (!in_menu && key->key == ASGE::KEYS::KEY_A)
   {
     if (key->action == ASGE::KEYS::KEY_RELEASED)
     {
@@ -307,7 +279,7 @@ void BreakoutGame::keyHandler(const ASGE::SharedEventData data)
   {
     if (key->action == ASGE::KEYS::KEY_PRESSED && player.canShoot())
     {
-      for (int i = 0; i < 5; i++)
+      for (int i = 0; i < SHOT_NUMBER; i++)
       {
         if (!shots[i].visibility())
         {
@@ -356,28 +328,44 @@ void BreakoutGame::calculateNewDirection(float x, float size)
   vector2 new_dir = vector2(float(ball.speed() * sin(bounce_angle)),
                             float(ball.speed() * cos(bounce_angle)));
   new_dir.normalise();
-  ball.direction(new_dir.x, -new_dir.y);
+
+  // Sanity Checking
+  if (new_dir.y > 0)
+  {
+    new_dir.y *= -1;
+  }
+  if ((ball.direction().x > 0 && new_dir.x > 0) ||
+      (ball.direction().x < 0 && new_dir.x < 0))
+  {
+    new_dir.x *= -1;
+  }
+  if ((new_dir.x < 0 && player.direction().x > 0) ||
+      (new_dir.x > 0 && player.direction().x < 0))
+  {
+    new_dir.x *= -1;
+  }
+  ball.direction(new_dir.x, new_dir.y);
 }
 
 bool BreakoutGame::collisionDetection(float x, float y, float size)
 {
   // Wall Collision
-  if (x < 0)
+  if (x < 0 && ball.direction().x < 0)
   {
     x = 0;
     ball.direction(-ball.direction().x, ball.direction().y);
   }
-  else if (x > float(game_width) - size)
+  else if (x > float(game_width) - size && ball.direction().x > 0)
   {
     x = float(game_width) - size;
     ball.direction(-ball.direction().x, ball.direction().y);
   }
-  if (y < 0)
+  if (y < 0 && ball.direction().y < 0)
   {
     y = 0;
     ball.direction(ball.direction().x, -ball.direction().y);
   }
-  else if (y > float(game_height) - size)
+  else if (y > float(game_height) - size && ball.direction().y > 0)
   {
     lives--;
     return false;
@@ -396,12 +384,13 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
   for (int i = 0; i < BLOCK_NUMBER; i++)
   {
     if (blocks[i].visibility() &&
-        blocks[i].spriteComponent()->getBoundingBox().isInside(x, y))
+        blocks[i].spriteComponent()->getBoundingBox().isInside(
+          ball.spriteComponent()->getBoundingBox()))
     {
       blocks[i].visibility(false);
       if (i % 8 == 0)
       {
-        // Hit powerup block
+        // Hit power-up block
         int power_up_number = i / 10;
         power_ups[power_up_number].spriteComponent()->getSprite()->xPos(
           blocks[i].spriteComponent()->getSprite()->xPos());
@@ -414,34 +403,81 @@ bool BreakoutGame::collisionDetection(float x, float y, float size)
         score += 1;
       }
 
-      if (y >= blocks[i].spriteComponent()->getSprite()->yPos() +
-                 blocks[i].spriteComponent()->getSprite()->height())
-      {
-        ball.direction(ball.direction().x, -ball.direction().y);
-      }
-      else
+      // Get new ball direction
+      if (x + size <= blocks[i].spriteComponent()->getSprite()->xPos() + 2 &&
+          ball.direction().x > 0)
       {
         ball.direction(-ball.direction().x, ball.direction().y);
       }
-    }
-    else if (blocks[i].visibility() &&
-             blocks[i].spriteComponent()->getBoundingBox().isInside(x + size,
-                                                                    y + size))
-    {
-      blocks[i].visibility(false);
-      score += 1;
-
-      if (y <= blocks[i].spriteComponent()->getSprite()->yPos())
+      else if (x >= blocks[i].spriteComponent()->getSprite()->xPos() +
+                      blocks[i].spriteComponent()->getSprite()->width() - 2 &&
+               ball.direction().x < 0)
+      {
+        ball.direction(-ball.direction().x, ball.direction().y);
+      }
+      if (y + size <= blocks[i].spriteComponent()->getSprite()->yPos() + 2 &&
+          ball.direction().y > 0)
       {
         ball.direction(ball.direction().x, -ball.direction().y);
       }
-      else
+      else if (y >= blocks[i].spriteComponent()->getSprite()->yPos() +
+                      blocks[i].spriteComponent()->getSprite()->height() - 2 &&
+               ball.direction().y < 0)
       {
-        ball.direction(-ball.direction().x, ball.direction().y);
+        ball.direction(ball.direction().x, -ball.direction().y);
       }
     }
   }
   return true;
+}
+
+void BreakoutGame::restartGame()
+{
+  gameover = false;
+  gamewon = false;
+  score = 0;
+  lives = 3;
+
+  // Reset Player
+  player.spriteComponent()->getSprite()->xPos(280);
+  player.spriteComponent()->getSprite()->yPos(850);
+
+  // Reset Ball
+  ball.spriteComponent()->getSprite()->xPos(320);
+  ball.spriteComponent()->getSprite()->yPos(800);
+  vector2 dir = vector2(-1, -1);
+  dir.normalise();
+  ball.direction(dir.x, dir.y);
+
+  // Reset blocks
+  for (int i = 0; i < BLOCK_NUMBER; i++)
+  {
+    blocks[i].visibility(true);
+  }
+
+  // Reset gems
+  for (int i = 0; i < GEM_NUMBER; i++)
+  {
+    gems[i].spriteComponent()->getSprite()->xPos(0);
+    gems[i].spriteComponent()->getSprite()->yPos(-50);
+    gems[i].visibility(false);
+  }
+
+  // Reset power ups
+  for (int i = 0; i < POWER_UP_NUMBER; i++)
+  {
+    power_ups[i].spriteComponent()->getSprite()->xPos(0);
+    power_ups[i].spriteComponent()->getSprite()->yPos(0);
+    power_ups[i].visibility(false);
+  }
+
+  // Reset shots
+  for (int i = 0; i < SHOT_NUMBER; i++)
+  {
+    shots[i].spriteComponent()->getSprite()->xPos(0);
+    shots[i].spriteComponent()->getSprite()->yPos(0);
+    shots[i].visibility(false);
+  }
 }
 
 /**
@@ -478,20 +514,16 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     }
 
     // Release gems
-    if (game_time.game_time.count() > 5000 &&
-        game_time.game_time.count() < 6000)
+    for (int i = 0; i < GEM_NUMBER; i++)
     {
-      gems[0].visibility(true);
-    }
-    if (game_time.game_time.count() > 7000 &&
-        game_time.game_time.count() < 8000)
-    {
-      gems[1].visibility(true);
-    }
-    if (game_time.game_time.count() > 9000 &&
-        game_time.game_time.count() < 10000)
-    {
-      gems[2].visibility(true);
+      if (std::rand() % 5000000 + 1 < 2)
+      {
+        int random_x = std::rand() % (game_width - 120) + 60;
+        std::cout << random_x << std::endl;
+        gems[i].spriteComponent()->getSprite()->xPos(float(random_x));
+        gems[i].speed(float(std::rand() % 100 + 100));
+        gems[i].visibility(true);
+      }
     }
 
     // Gem Collision Detection
@@ -513,7 +545,7 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     }
 
     // Power Up Collision Detection
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < POWER_UP_NUMBER; i++)
     {
       if (power_ups[i].spriteComponent()->getBoundingBox().isInside(
             player.spriteComponent()->getBoundingBox()) &&
@@ -534,7 +566,7 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     }
 
     // Shot Collision Detection
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < SHOT_NUMBER; i++)
     {
       for (int j = 0; j < BLOCK_NUMBER; j++)
       {
@@ -604,7 +636,7 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     }
 
     // Update Power Ups
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < POWER_UP_NUMBER; i++)
     {
       if (power_ups[i].visibility())
       {
@@ -616,7 +648,7 @@ void BreakoutGame::update(const ASGE::GameTime& game_time)
     }
 
     // Update Shots
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < SHOT_NUMBER; i++)
     {
       if (shots[i].visibility())
       {
@@ -646,6 +678,7 @@ void BreakoutGame::render(const ASGE::GameTime&)
   if (in_menu)
   {
     renderer->renderText("Press ENTER to start the game", 180, 460);
+    renderer->renderText("Press ENTER when in the game to restart", 130, 520);
   }
   else
   {
@@ -665,7 +698,7 @@ void BreakoutGame::render(const ASGE::GameTime&)
       }
     }
 
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < POWER_UP_NUMBER; i++)
     {
       if (power_ups[i].visibility())
       {
@@ -673,7 +706,7 @@ void BreakoutGame::render(const ASGE::GameTime&)
       }
     }
 
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < SHOT_NUMBER; i++)
     {
       if (shots[i].visibility())
       {

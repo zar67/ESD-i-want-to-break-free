@@ -5,6 +5,11 @@
 #include "Components/GameObject.h"
 #include "Utility/Rect.h"
 
+const int BLOCK_NUMBER = 30;
+const int GEM_NUMBER = 3;
+const int POWER_UP_NUMBER = 3;
+const int SHOT_NUMBER = 10;
+
 /**
  *  An OpenGL Game based on ASGE.
  */
@@ -20,11 +25,9 @@ class BreakoutGame : public ASGE::OGLGame
   void clickHandler(const ASGE::SharedEventData data);
   void setupResolution();
   void setUpBlock(int count, float x, float y, const std::string& sprite);
-  void setupGem(int count, std::string sprite, float x, float y, float speed);
-  void
-  setupPowerUps(int count, std::string sprite, float x, float y, float speed);
   bool collisionDetection(float x, float y, float size);
   void calculateNewDirection(float x, float size);
+  void restartGame();
 
   virtual void update(const ASGE::GameTime&) override;
   virtual void render(const ASGE::GameTime&) override;
@@ -35,10 +38,10 @@ class BreakoutGame : public ASGE::OGLGame
   // Add your GameObjects
   GameObject player;
   GameObject ball;
-  GameObject blocks[30];
-  GameObject gems[3];
-  GameObject power_ups[3];
-  GameObject shots[5];
+  GameObject blocks[BLOCK_NUMBER];
+  GameObject gems[GEM_NUMBER];
+  GameObject power_ups[POWER_UP_NUMBER];
+  GameObject shots[SHOT_NUMBER];
 
   bool in_menu = true;
   bool gameover = false;
