@@ -11,6 +11,15 @@
 #include "Game.h"
 #include "Utility/Rect.h"
 
+/* MARKING FEEDBACK
+ * - Good layout and readability
+ * - Casts should use "static" casts instead of C version casts due to exception
+ *   handlers etc
+ * - Breakup into more, smaller functions, maybe have a collision or update
+ *   gameobject class to break up the update function
+ * - Collision detection should detect collisions, not resolve them as-well
+ */
+
 /**
  *   @brief   Default Constructor.
  *   @details Consider setting the game's width and height
