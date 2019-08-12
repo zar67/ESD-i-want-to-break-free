@@ -1,30 +1,52 @@
+//
+// Created by Zoe on 12/08/2019.
+//
+
 #include "GameObject.h"
-#include <Engine/Renderer.h>
 
 GameObject::~GameObject()
 {
-  free();
+  freeSprite();
+  freeMovement();
 }
 
-bool GameObject::addSpriteComponent(ASGE::Renderer* renderer,
-                                    const std::string& texture_file_name)
+bool GameObject::setupSprite(ASGE::Renderer* renderer,
+                             const std::string& file_name,
+                             float x,
+                             float y,
+                             float width,
+                             float height)
 {
-  free();
+  freeSprite();
+
+  start_x = x;
+  start_y = y;
 
   sprite_component = new SpriteComponent();
-  if (sprite_component->loadSprite(renderer, texture_file_name))
+  if (sprite_component->loadSprite(renderer, file_name))
   {
+    sprite_component->getSprite()->xPos(x);
+    sprite_component->getSprite()->yPos(y);
+    sprite_component->getSprite()->width(width);
+    sprite_component->getSprite()->height(height);
+
     return true;
   }
 
-  free();
+  freeSprite();
   return false;
 }
 
-void GameObject::free()
+void GameObject::setupMovement(float start_speed)
 {
-  delete sprite_component;
-  sprite_component = nullptr;
+  freeMovement();
+  movement_component = new MovementComponent(start_speed);
+}
+
+void GameObject::update(double delta_time)
+{
+  setPosition(
+    movement_component->moveGameObject(delta_time, position().x, position().y));
 }
 
 SpriteComponent* GameObject::spriteComponent()
@@ -32,53 +54,88 @@ SpriteComponent* GameObject::spriteComponent()
   return sprite_component;
 }
 
-void GameObject::visibility(bool v)
+MovementComponent* GameObject::movementComponent()
 {
-  visible = v;
+  return movement_component;
 }
 
-bool GameObject::visibility()
+bool GameObject::active()
 {
   return visible;
 }
 
-float GameObject::speed()
+void GameObject::active(bool a)
 {
-  return speed_;
+  visible = a;
 }
 
-void GameObject::speed(float s)
+void GameObject::setPosition(float x, float y)
 {
-  speed_ = s;
+  sprite_component->getSprite()->xPos(x);
+  sprite_component->getSprite()->yPos(y);
 }
 
-vector2 GameObject::direction()
+void GameObject::setPosition(Vector2 p)
 {
-  return velocity;
+  sprite_component->getSprite()->xPos(p.x);
+  sprite_component->getSprite()->yPos(p.y);
 }
 
-void GameObject::direction(float x_, float y_)
+void GameObject::setDirection(float x, float y)
 {
-  velocity.x = x_;
-  velocity.y = y_;
+  movement_component->setDirection(x, y);
 }
 
-void GameObject::canShoot(bool s)
+void GameObject::setDirection(Vector2 d)
 {
-  can_shoot = s;
+  movement_component->setDirection(d.x, d.y);
 }
 
-bool GameObject::canShoot()
+Vector2 GameObject::position()
 {
-  return can_shoot;
+  return Vector2(sprite_component->getSprite()->xPos(),
+                 sprite_component->getSprite()->yPos());
 }
 
-void GameObject::shootTimer(float t)
+Vector2 GameObject::direction()
 {
-  shoot_timer = t;
+  return movement_component->direction();
 }
 
-float GameObject::shootTimer()
+float GameObject::width()
 {
-  return float(shoot_timer);
+  return sprite_component->getSprite()->width();
+}
+
+float GameObject::height()
+{
+  return sprite_component->getSprite()->height();
+}
+
+void GameObject::freeSprite()
+{
+  delete sprite_component;
+  sprite_component = nullptr;
+}
+
+void GameObject::freeMovement()
+{
+  delete movement_component;
+  movement_component = nullptr;
+}
+
+Rectangle GameObject::getRectangle()
+{
+  return Rectangle(position().x, position().y, width(), height());
+}
+
+void GameObject::reset()
+{
+  setPosition(start_x, start_y);
+  visible = false;
+}
+
+Circle GameObject::getCircle()
+{
+  return Circle(position().x, position().y, width() / 2);
 }

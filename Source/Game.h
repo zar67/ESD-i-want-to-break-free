@@ -1,52 +1,63 @@
-#pragma once
+//
+// Created by Zoe on 08/08/2019.
+//
+
+#ifndef BREAKOUT_GAME_H
+#define BREAKOUT_GAME_H
+
+#include "GameObjects/Ball.h"
+#include "GameObjects/Player.h"
+#include "Handlers/CollisionHandler.h"
+#include "Handlers/UIHandler.h"
+#include "LevelData/GameConstants.h"
+#include "LevelData/Level.h"
 #include <Engine/OGLGame.h>
-#include <string>
 
-#include "Components/GameObject.h"
-#include "Utility/Rect.h"
-
-const int BLOCK_NUMBER = 30;
-const int GEM_NUMBER = 3;
-const int POWER_UP_NUMBER = 3;
-const int SHOT_NUMBER = 10;
-
-/**
- *  An OpenGL Game based on ASGE.
- */
-class BreakoutGame : public ASGE::OGLGame
+class Game : public ASGE::OGLGame
 {
  public:
-  BreakoutGame();
-  ~BreakoutGame();
-  virtual bool init() override;
+  virtual ~Game();
+  bool init() override;
+  void update(const ASGE::GameTime& game) override;
+  void render(const ASGE::GameTime& game) override;
 
  private:
   void keyHandler(const ASGE::SharedEventData data);
   void clickHandler(const ASGE::SharedEventData data);
-  void setupResolution();
-  void setUpBlock(int count, float x, float y, const std::string& sprite);
-  bool collisionDetection(float x, float y, float size);
-  void calculateNewDirection(float x, float size);
-  void restartGame();
 
-  virtual void update(const ASGE::GameTime&) override;
-  virtual void render(const ASGE::GameTime&) override;
+  void loadNextLevel();
+
+  void resetGame();
+  void resetLevel();
+  void resetGameObjects();
+  void renderMainMenuScreen();
+  void renderGameScreen();
+  void renderNextLevelScreen();
+  void renderGameOverScreen();
+  void renderPauseScreen();
 
   int key_callback_id = -1;   /**< Key Input Callback ID. */
   int mouse_callback_id = -1; /**< Mouse Input Callback ID. */
 
-  // Add your GameObjects
-  GameObject player;
-  GameObject ball;
-  GameObject blocks[BLOCK_NUMBER];
-  GameObject gems[GEM_NUMBER];
-  GameObject power_ups[POWER_UP_NUMBER];
-  GameObject shots[SHOT_NUMBER];
+  Level level;
+  int current_level = 1;
 
-  bool in_menu = true;
-  bool gameover = false;
-  bool gamewon = false;
-  bool respawn_ball = false;
-  int lives = 3;
-  int score = 0;
+  int screen_open = 0;
+
+  CollisionHandler collision;
+  UIHandler ui_elements;
+
+  Ball ball;
+  Player player;
+
+  GameObject blocks[SETTINGS::MAX_BLOCK_NUM];
+  GameObject gems[SETTINGS::MAX_GEM_NUM];
+  GameObject power_ups[SETTINGS::MAX_POWER_UP_NUM];
+  GameObject shots[SETTINGS::MAX_SHOT_NUM];
+
+  bool game_over = false;
+  bool game_won = false;
+  bool level_completed = false;
 };
+
+#endif // HELLOASGE_GAME_H

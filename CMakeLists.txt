@@ -17,17 +17,19 @@ set(ITCHIO_USER     "")
 ## files used to build this game
 add_executable(
         ${PROJECT_NAME}
-        "Source/main.cpp"
-        "Source/Game.h"
-        "Source/Game.cpp"
-        "Source/Components/GameObject.h"
-        "Source/Components/GameObject.cpp"
-        "Source/Components/SpriteComponent.h"
-        "Source/Components/SpriteComponent.cpp"
-        "Source/Utility/Rect.h"
-        "Source/Utility/Rect.cpp"
-        "Source/Utility/Vector2.h"
-        "Source/Utility/Vector2.cpp" )
+        main.cpp Source/Game.cpp Source/Game.h
+        Source/Utility/Vector2.cpp Source/Utility/Vector2.h
+        Source/Utility/Circle.cpp Source/Utility/Circle.h
+        Source/Utility/Rectangle.cpp Source/Utility/Rectangle.h
+        Source/Components/GameObject.cpp Source/Components/GameObject.h
+        Source/Components/SpriteComponent.cpp Source/Components/SpriteComponent.h
+        Source/Components/MovementComponent.cpp Source/Components/MovementComponent.h
+        Source/Handlers/CollisionHandler.cpp Source/Handlers/CollisionHandler.h
+        Source/Handlers/UIHandler.cpp Source/Handlers/UIHandler.h
+        Source/GameObjects/Ball.cpp Source/GameObjects/Ball.h
+        Source/GameObjects/Player.cpp Source/GameObjects/Player.h
+        Source/LevelData/GameConstants.h
+        Source/LevelData/Level.cpp Source/LevelData/Level.h)
 
 ## utility scripts
 set(ENABLE_SOUND OFF CACHE BOOL "Adds SoLoud to the Project" FORCE)

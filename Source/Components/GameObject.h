@@ -1,69 +1,68 @@
-#pragma once
+//
+// Created by Zoe on 12/08/2019.
+//
+
+#ifndef BREAKOUT_GAMEOBJECT_H
+#define BREAKOUT_GAMEOBJECT_H
+
+#include "../Utility/Circle.h"
+#include "../Utility/Rectangle.h"
+#include "../Utility/Vector2.h"
+#include "MovementComponent.h"
 #include "SpriteComponent.h"
-#include "Utility/Vector2.h"
 #include <string>
 
-/**
- *  Objects used throughout the game.
- *  Provides a nice solid base class for objects in this game world.
- *  They currently support only sprite components, but this could easily
- *  be extended to include things like rigid bodies or input systems.
- *  @see SpriteComponent
- */
 class GameObject
 {
  public:
-  /**
-   *  Default constructor.
-   */
+  // Constructor and (virtual) Destructor
   GameObject() = default;
+  virtual ~GameObject();
 
-  /**
-   *  Destructor. Frees dynamic memory.
-   */
-  ~GameObject();
+  // Component adding functions
+  bool setupSprite(ASGE::Renderer* renderer,
+                   const std::string& file_name,
+                   float x,
+                   float y,
+                   float width,
+                   float height);
 
-  /**
-   *  Allocates and attaches a sprite component to the object.
-   *  Part of this process will attempt to load a texture file.
-   *  If this fails this function will return false and the memory
-   *  allocated, freed.
-   *  @param [in] renderer The renderer used to perform the allocations
-   *  @param [in] texture_file_name The file path to the the texture to load
-   *  @return true if the component is successfully added
-   */
-  bool addSpriteComponent(ASGE::Renderer* renderer,
-                          const std::string& texture_file_name);
+  void setupMovement(float start_speed);
 
-  /**
-   *  Returns the sprite componenent.
-   *  IT IS HIGHLY RECOMMENDED THAT YOU CHECK THE STATUS OF THE POINTER
-   *  IS IS VALID FOR A COMPONENT TO BE NULL AS THEY ARE OPTIONAL!
-   *  @return a pointer to the objects sprite component (if any)
-   */
+  void update(double delta_time);
+
+  // The components
   SpriteComponent* spriteComponent();
+  MovementComponent* movementComponent();
 
-  void visibility(bool v);
-  bool visibility();
+  // Setters
+  void active(bool a);
+  void setPosition(float x, float y);
+  void setPosition(Vector2 p);
+  void setDirection(float x, float y);
+  void setDirection(Vector2 d);
+  virtual void reset();
 
-  float speed();
-  void speed(float s);
-  vector2 direction();
-  void direction(float x_, float y_);
+  // Getters
+  bool active();
+  Vector2 position();
+  Vector2 direction();
+  float width();
+  float height();
+  Rectangle getRectangle();
+  Circle getCircle();
 
-  void canShoot(bool s);
-  bool canShoot();
+ protected:
+  void freeSprite();
+  void freeMovement();
 
-  void shootTimer(float t);
-  float shootTimer();
-
- private:
-  void free();
   SpriteComponent* sprite_component = nullptr;
+  MovementComponent* movement_component = nullptr;
+
+  float start_x = 0;
+  float start_y = 0;
 
   bool visible = true;
-  bool can_shoot = false;
-  double shoot_timer = 0.0f;
-  float speed_;
-  vector2 velocity = vector2(0.0f, 0.0f);
 };
+
+#endif // BREAKOUT_GAMEOBJECT_H

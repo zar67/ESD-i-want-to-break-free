@@ -1,745 +1,635 @@
-#include <iostream>
-#include <math.h>
-#include <string>
+//
+// Created by Zoe on 08/08/2019.
+//
 
+#include "Game.h"
 #include <Engine/DebugPrinter.h>
 #include <Engine/Input.h>
 #include <Engine/InputEvents.h>
 #include <Engine/Keys.h>
+#include <Engine/Platform.h>
 #include <Engine/Sprite.h>
+#include <iostream>
+#include <string>
 
-#include "Game.h"
-#include "Utility/Rect.h"
+const int MENU_SCREEN = 0;
+const int GAME_SCREEN = 1;
+const int GAME_OVER_SCREEN = 2;
+const int PAUSE_SCREEN = 3;
+const int NEXT_LEVEL_SCREEN = 4;
 
-/* MARKING FEEDBACK
- * - Good layout and readability
- * - Casts should use "static" casts instead of C version casts due to exception
- *   handlers etc
- * - Breakup into more, smaller functions, maybe have a collision or update
- *   gameobject class to break up the update function
- * - Collision detection should detect collisions, not resolve them as-well
- */
-
-/**
- *   @brief   Default Constructor.
- *   @details Consider setting the game's width and height
- *            and even seeding the random number generator.
- */
-BreakoutGame::BreakoutGame() {}
-
-/**
- *   @brief   Destructor.
- *   @details Remove any non-managed memory and callbacks.
- */
-BreakoutGame::~BreakoutGame()
+Game::~Game()
 {
-  this->inputs->unregisterCallback(static_cast<unsigned int>(key_callback_id));
-  this->inputs->unregisterCallback(
-    static_cast<unsigned int>(mouse_callback_id));
+  this->inputs->unregisterCallback(key_callback_id);
+  this->inputs->unregisterCallback(mouse_callback_id);
 }
 
-void BreakoutGame::setUpBlock(int count,
-                              float x,
-                              float y,
-                              const std::string& sprite)
+bool Game::init()
 {
-  if (blocks[count].addSpriteComponent(renderer.get(), sprite))
-  {
-    blocks[count].spriteComponent()->getSprite()->xPos(x);
-    blocks[count].spriteComponent()->getSprite()->yPos(y);
-    std::cout << "Block " << count << " Sprite Set" << std::endl;
-  }
-  else
-  {
-    std::cout << "Block " << count << " Sprite NOT Set" << std::endl;
-  }
-}
+  game_width = 655;
+  game_height = 920;
+  game_name = "Breakout";
 
-/**
- *   @brief   Initialises the game.
- *   @details The game window is created and all assets required to
- *            run the game are loaded. The keyHandler and clickHandler
- *            callback should also be set in the initialise function.
- *   @return  True if the game initialised correctly.
- */
-bool BreakoutGame::init()
-{
-  std::srand(static_cast<unsigned int>(time(nullptr)));
-  setupResolution();
   if (!initAPI())
-  {
     return false;
-  }
 
   renderer->setClearColour(ASGE::COLOURS::BLACK);
-
-  toggleFPS();
-  renderer->setWindowTitle("Breakout!");
-
-  // input handling functions
+  renderer->setSpriteMode(ASGE::SpriteSortMode::IMMEDIATE);
   inputs->use_threads = false;
 
   key_callback_id =
-    inputs->addCallbackFnc(ASGE::E_KEY, &BreakoutGame::keyHandler, this);
+    inputs->addCallbackFnc(ASGE::E_KEY, &Game::keyHandler, this);
+  mouse_callback_id =
+    inputs->addCallbackFnc(ASGE::E_MOUSE_CLICK, &Game::clickHandler, this);
 
-  mouse_callback_id = inputs->addCallbackFnc(
-    ASGE::E_MOUSE_CLICK, &BreakoutGame::clickHandler, this);
+  ui_elements.setupUIObjects(renderer.get(), 200, 30);
 
-  // Setup player
-  if (player.addSpriteComponent(renderer.get(),
-                                "Textures/puzzlepack/png/paddleBlue.png"))
+  // Setup Level
+  std::string filename =
+    "../../GameData/Levels/lvl_" + std::to_string(current_level) + ".txt";
+  if (!level.load(filename))
   {
-    std::cout << "Player Sprite Set" << std::endl;
-    player.spriteComponent()->getSprite()->xPos(280);
-    player.spriteComponent()->getSprite()->yPos(850);
-    player.speed(300.0f);
-  }
-  else
-  {
-    std::cout << "Player Sprite NOT Set" << std::endl;
+    std::cout << "Level NOT loaded" << std::endl;
+    return false;
   }
 
-  // Setup ball
-  if (ball.addSpriteComponent(renderer.get(),
-                              "Textures/puzzlepack/png/ballBlue.png"))
+  // Setup GameObjects
+  if (!player.setup(
+        renderer.get(), "data/Textures/paddle.png", 260, 820, 300, 120, 25))
   {
-    std::cout << "Ball Sprite Set" << std::endl;
-    ball.spriteComponent()->getSprite()->xPos(320);
-    ball.spriteComponent()->getSprite()->yPos(800);
-    ball.speed(450.0f);
-    vector2 dir = vector2(-1, -1);
-    dir.normalise();
-    ball.direction(dir.x, dir.y);
-  }
-  else
-  {
-    std::cout << "Ball Sprite NOT Set" << std::endl;
+    std::cout << "Player NOT setup correctly" << std::endl;
+    return false;
   }
 
-  // Setup blocks
-  int row = 0;
-  int column = 0;
-  for (int i = 0; i < BLOCK_NUMBER; i++)
+  if (!ball.setup(
+        renderer.get(), "data/Textures/ball.png", 310, 790, 400, 20, 20))
   {
-    float x = float(row) * 100 + 35;
-    float y = float(column) * 50 + 30;
-
-    if (i % 8 == 0)
-    {
-      setUpBlock(
-        i, x, y, "Textures/puzzlepack/png/element_purple_rectangle.png");
-    }
-    else
-    {
-      setUpBlock(
-        i, x, y, "Textures/puzzlepack/png/element_yellow_rectangle.png");
-    }
-
-    row++;
-    int extra = row % 6;
-    if (extra == 0)
-    {
-      row = 0;
-      column++;
-    }
+    std::cout << "Ball NOT setup correctly" << std::endl;
+    return false;
   }
 
-  // Setup gems
-  for (int i = 0; i < GEM_NUMBER; i++)
+  for (int i = 0; i < SETTINGS::MAX_BLOCK_NUM; i++)
   {
-    if (gems[i].addSpriteComponent(renderer.get(),
-                                   "Textures/puzzlepack/png/"
-                                   "element_red_polygon.png"))
-    {
-      std::cout << "Gem Sprite set" << std::endl;
-      gems[i].spriteComponent()->getSprite()->xPos(0);
-      gems[i].spriteComponent()->getSprite()->yPos(-50);
+    int num = rand() % 8 + 1;
+    std::string texture =
+      "data/Textures/Blocks/tile_" + std::to_string(num) + ".png";
 
-      gems[i].speed(150);
-      vector2 dir = vector2(0, -1);
-      dir.normalise();
-      gems[i].direction(dir.x, dir.y);
-      gems[i].visibility(false);
-    }
-    else
+    if (!blocks[i].setupSprite(renderer.get(), texture, 0, -30, 60, 30))
     {
-      std::cout << "Gem Sprite NOT set" << std::endl;
+      std::cout << "Block NOT setup correctly" << std::endl;
+      return false;
     }
+    blocks[i].active(true);
   }
 
-  // Setup Power-ups
-  for (int i = 0; i < POWER_UP_NUMBER; i++)
+  for (int i = 0; i < SETTINGS::MAX_GEM_NUM; i++)
   {
-    if (power_ups[i].addSpriteComponent(renderer.get(),
-                                        "Textures/puzzlepack/png/"
-                                        "element_green_square.png"))
+    int num = rand() % 8 + 1;
+    std::string texture =
+      "data/Textures/Gems/gem_" + std::to_string(num) + ".png";
+
+    if (!gems[i].setupSprite(renderer.get(), texture, 0, -30, 30, 30))
     {
-      std::cout << "Power Up Sprite set" << std::endl;
-      power_ups[i].spriteComponent()->getSprite()->xPos(0);
-      power_ups[i].spriteComponent()->getSprite()->yPos(0);
-      power_ups[i].speed(150);
-      vector2 dir = vector2(0, -1);
-      dir.normalise();
-      power_ups[i].direction(dir.x, dir.y);
-      power_ups[i].visibility(false);
+      std::cout << "Gem NOT setup correctly" << std::endl;
+      return false;
     }
-    else
-    {
-      std::cout << "Power Up Sprite NOT set" << std::endl;
-    }
+    gems[i].setupMovement(150);
+    gems[i].setDirection(0, 1);
+    gems[i].active(false);
   }
 
-  // Shots setup
-  for (int i = 0; i < SHOT_NUMBER; i++)
+  for (int i = 0; i < SETTINGS::MAX_POWER_UP_NUM; i++)
   {
-    if (shots[i].addSpriteComponent(renderer.get(),
-                                    "Textures/puzzlepack/png/particleStar.png"))
+    if (!power_ups[i].setupSprite(
+          renderer.get(), "data/Textures/power_up.png", 0, -30, 30, 30))
     {
-      std::cout << "Shot Sprite set" << std::endl;
-      shots[i].spriteComponent()->getSprite()->xPos(0);
-      shots[i].spriteComponent()->getSprite()->yPos(0);
-      shots[i].speed(200);
-      vector2 dir = vector2(0, 1);
-      dir.normalise();
-      shots[i].direction(dir.x, dir.y);
-      shots[i].visibility(false);
+      std::cout << "Power Up NOT setup correctly" << std::endl;
+      return false;
     }
-    else
+
+    power_ups[i].setupMovement(150);
+    power_ups[i].setDirection(0, 1);
+    power_ups[i].active(false);
+  }
+
+  for (int i = 0; i < SETTINGS::MAX_SHOT_NUM; i++)
+  {
+    if (!shots[i].setupSprite(
+          renderer.get(), "data/Textures/shot.png", 0, -20, 10, 40))
     {
-      std::cout << "Shot Sprite NOT set" << std::endl;
+      std::cout << "Shot NOT setup correctly" << std::endl;
+      return false;
     }
+
+    shots[i].setupMovement(200);
+    shots[i].setDirection(0, -1);
+    shots[i].active(false);
   }
 
   return true;
 }
 
-/**
- *   @brief   Sets the game window resolution
- *   @details This function is designed to create the window size, any
- *            aspect ratio scaling factors and safe zones to ensure the
- *            game frames when resolutions are changed in size.
- *   @return  void
- */
-void BreakoutGame::setupResolution()
-{
-  // how will you calculate the game's resolution?
-  // will it scale correctly in full screen? what AR will you use?
-  // how will the game be framed in native 16:9 resolutions?
-  // here are some arbitrary values for you to adjust as you see fit
-  // https://www.gamasutra.com/blogs/KenanBolukbasi/20171002/306822/Scaling_and_MultiResolution_in_2D_Games.php
-  game_width = 640;
-  game_height = 920;
-}
-
-/**
- *   @brief   Processes any key inputs
- *   @details This function is added as a callback to handle the game's
- *            keyboard input. For this game, calls to this function
- *            are thread safe, so you may alter the game's state as
- *            you see fit.
- *   @param   data The event data relating to key input.
- *   @see     KeyEvent
- *   @return  void
- */
-void BreakoutGame::keyHandler(const ASGE::SharedEventData data)
+void Game::keyHandler(const ASGE::SharedEventData data)
 {
   auto key = static_cast<const ASGE::KeyEvent*>(data.get());
 
-  if (key->key == ASGE::KEYS::KEY_ESCAPE)
+  if (screen_open == GAME_SCREEN)
   {
-    signalExit();
-  }
-
-  else if (in_menu && key->key == ASGE::KEYS::KEY_ENTER)
-  {
-    in_menu = false;
-  }
-
-  else if (!in_menu && key->key == ASGE::KEYS::KEY_ENTER)
-  {
-    restartGame();
-  }
-
-  else if (!in_menu && key->key == ASGE::KEYS::KEY_A)
-  {
-    if (key->action == ASGE::KEYS::KEY_RELEASED)
+    if (key->key == ASGE::KEYS::KEY_ESCAPE &&
+        key->action == ASGE::KEYS::KEY_PRESSED)
     {
-      player.direction(0, 0);
+      screen_open = PAUSE_SCREEN;
     }
-    else
+    else if (key->key == ASGE::KEYS::KEY_A)
     {
-      player.direction(-1, 0);
-    }
-  }
-
-  else if (key->key == ASGE::KEYS::KEY_D)
-  {
-    if (key->action == ASGE::KEYS::KEY_RELEASED)
-    {
-      player.direction(0, 0);
-    }
-    else
-    {
-      player.direction(1, 0);
-    }
-  }
-
-  else if (key->key == ASGE::KEYS::KEY_SPACE)
-  {
-    if (key->action == ASGE::KEYS::KEY_PRESSED && player.canShoot())
-    {
-      for (int i = 0; i < SHOT_NUMBER; i++)
+      if (key->action == ASGE::KEYS::KEY_RELEASED)
       {
-        if (!shots[i].visibility())
+        player.setDirection(0, 0);
+      }
+      else
+      {
+        player.setDirection(-1, 0);
+      }
+    }
+    else if (key->key == ASGE::KEYS::KEY_D)
+    {
+      if (key->action == ASGE::KEYS::KEY_RELEASED)
+      {
+        player.setDirection(0, 0);
+      }
+      else
+      {
+        player.setDirection(1, 0);
+      }
+    }
+    else if (key->key == ASGE::KEYS::KEY_SPACE &&
+             key->action == ASGE::KEYS::KEY_PRESSED && player.canShoot())
+    {
+      for (int i = 0; i < SETTINGS::MAX_SHOT_NUM; i++)
+      {
+        if (!shots[i].active())
         {
-          shots[i].visibility(true);
-          shots[i].spriteComponent()->getSprite()->xPos(
-            player.spriteComponent()->getSprite()->xPos() +
-            (player.spriteComponent()->getSprite()->width() / 2));
-          shots[i].spriteComponent()->getSprite()->yPos(
-            player.spriteComponent()->getSprite()->yPos() - 10);
+          shots[i].active(true);
+          shots[i].setPosition(player.position().x + (player.width() / 2),
+                               player.position().y - shots[i].height());
           break;
         }
       }
     }
   }
+  else if (screen_open != GAME_SCREEN && key->key == ASGE::KEYS::KEY_ESCAPE &&
+           key->action == ASGE::KEYS::KEY_PRESSED)
+  {
+    signalExit();
+  }
 }
 
-/**
- *   @brief   Processes any click inputs
- *   @details This function is added as a callback to handle the game's
- *            mouse button input. For this game, calls to this function
- *            are thread safe, so you may alter the game's state as you
- *            see fit.
- *   @param   data The event data relating to key input.
- *   @see     ClickEvent
- *   @return  void
- */
-void BreakoutGame::clickHandler(const ASGE::SharedEventData data)
+void Game::clickHandler(const ASGE::SharedEventData data)
 {
   auto click = static_cast<const ASGE::ClickEvent*>(data.get());
 
-  double x_pos = click->xpos;
-  double y_pos = click->ypos;
-
-  ASGE::DebugPrinter{} << "x_pos: " << x_pos << std::endl;
-  ASGE::DebugPrinter{} << "y_pos: " << y_pos << std::endl;
-}
-
-void BreakoutGame::calculateNewDirection(float x, float size)
-{
-  float paddle_middle = player.spriteComponent()->getSprite()->xPos() +
-                        player.spriteComponent()->getSprite()->width() / 2;
-  float ball_intersect = paddle_middle - (x + (size / 2));
-  ball_intersect =
-    (ball_intersect / (player.spriteComponent()->getSprite()->width() / 2));
-  double bounce_angle = ball_intersect * 1.0472;
-  vector2 new_dir = vector2(float(ball.speed() * sin(bounce_angle)),
-                            float(ball.speed() * cos(bounce_angle)));
-  new_dir.normalise();
-
-  // Sanity Checking
-  if (new_dir.y > 0)
+  if (screen_open == MENU_SCREEN)
   {
-    new_dir.y *= -1;
-  }
-  if ((ball.direction().x > 0 && new_dir.x > 0) ||
-      (ball.direction().x < 0 && new_dir.x < 0))
-  {
-    new_dir.x *= -1;
-  }
-  if ((new_dir.x < 0 && player.direction().x > 0) ||
-      (new_dir.x > 0 && player.direction().x < 0))
-  {
-    new_dir.x *= -1;
-  }
-  ball.direction(new_dir.x, new_dir.y);
-}
-
-bool BreakoutGame::collisionDetection(float x, float y, float size)
-{
-  // Wall Collision
-  if (x < 0 && ball.direction().x < 0)
-  {
-    x = 0;
-    ball.direction(-ball.direction().x, ball.direction().y);
-  }
-  else if (x > float(game_width) - size && ball.direction().x > 0)
-  {
-    x = float(game_width) - size;
-    ball.direction(-ball.direction().x, ball.direction().y);
-  }
-  if (y < 0 && ball.direction().y < 0)
-  {
-    y = 0;
-    ball.direction(ball.direction().x, -ball.direction().y);
-  }
-  else if (y > float(game_height) - size && ball.direction().y > 0)
-  {
-    lives--;
-    return false;
-  }
-
-  ball.spriteComponent()->getSprite()->xPos(x);
-  ball.spriteComponent()->getSprite()->yPos(y);
-
-  // Paddle Collision
-  if (player.spriteComponent()->getBoundingBox().isInside(x, y + size))
-  {
-    calculateNewDirection(x, size);
-  }
-
-  // Block Collision
-  for (int i = 0; i < BLOCK_NUMBER; i++)
-  {
-    if (blocks[i].visibility() &&
-        blocks[i].spriteComponent()->getBoundingBox().isInside(
-          ball.spriteComponent()->getBoundingBox()))
+    ASGE::Sprite* sprite =
+      ui_elements.menu_play_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
     {
-      blocks[i].visibility(false);
-      if (i % 8 == 0)
-      {
-        // Hit power-up block
-        int power_up_number = i / 10;
-        power_ups[power_up_number].spriteComponent()->getSprite()->xPos(
-          blocks[i].spriteComponent()->getSprite()->xPos());
-        power_ups[power_up_number].spriteComponent()->getSprite()->yPos(
-          blocks[i].spriteComponent()->getSprite()->yPos());
-        power_ups[power_up_number].visibility(true);
-      }
-      else
-      {
-        score += 1;
-      }
-
-      // Get new ball direction
-      if (x + size <= blocks[i].spriteComponent()->getSprite()->xPos() + 2 &&
-          ball.direction().x > 0)
-      {
-        ball.direction(-ball.direction().x, ball.direction().y);
-      }
-      else if (x >= blocks[i].spriteComponent()->getSprite()->xPos() +
-                      blocks[i].spriteComponent()->getSprite()->width() - 2 &&
-               ball.direction().x < 0)
-      {
-        ball.direction(-ball.direction().x, ball.direction().y);
-      }
-      if (y + size <= blocks[i].spriteComponent()->getSprite()->yPos() + 2 &&
-          ball.direction().y > 0)
-      {
-        ball.direction(ball.direction().x, -ball.direction().y);
-      }
-      else if (y >= blocks[i].spriteComponent()->getSprite()->yPos() +
-                      blocks[i].spriteComponent()->getSprite()->height() - 2 &&
-               ball.direction().y < 0)
-      {
-        ball.direction(ball.direction().x, -ball.direction().y);
-      }
-    }
-  }
-  return true;
-}
-
-void BreakoutGame::restartGame()
-{
-  gameover = false;
-  gamewon = false;
-  score = 0;
-  lives = 3;
-
-  // Reset Player
-  player.spriteComponent()->getSprite()->xPos(280);
-  player.spriteComponent()->getSprite()->yPos(850);
-
-  // Reset Ball
-  ball.spriteComponent()->getSprite()->xPos(320);
-  ball.spriteComponent()->getSprite()->yPos(800);
-  vector2 dir = vector2(-1, -1);
-  dir.normalise();
-  ball.direction(dir.x, dir.y);
-
-  // Reset blocks
-  for (int i = 0; i < BLOCK_NUMBER; i++)
-  {
-    blocks[i].visibility(true);
-  }
-
-  // Reset gems
-  for (int i = 0; i < GEM_NUMBER; i++)
-  {
-    gems[i].spriteComponent()->getSprite()->xPos(0);
-    gems[i].spriteComponent()->getSprite()->yPos(-50);
-    gems[i].visibility(false);
-  }
-
-  // Reset power ups
-  for (int i = 0; i < POWER_UP_NUMBER; i++)
-  {
-    power_ups[i].spriteComponent()->getSprite()->xPos(0);
-    power_ups[i].spriteComponent()->getSprite()->yPos(0);
-    power_ups[i].visibility(false);
-  }
-
-  // Reset shots
-  for (int i = 0; i < SHOT_NUMBER; i++)
-  {
-    shots[i].spriteComponent()->getSprite()->xPos(0);
-    shots[i].spriteComponent()->getSprite()->yPos(0);
-    shots[i].visibility(false);
-  }
-}
-
-/**
- *   @brief   Updates the scene
- *   @details Prepares the renderer subsystem before drawing the
- *            current frame. Once the current frame is has finished
- *            the buffers are swapped accordingly and the image shown.
- *   @return  void
- */
-void BreakoutGame::update(const ASGE::GameTime& game_time)
-{
-  if (!in_menu && !gameover && !gamewon)
-  {
-    if (lives <= 0)
-    {
-      gameover = true;
+      resetGame();
+      screen_open = GAME_SCREEN;
+      return;
     }
 
-    gamewon = true;
-    for (int i = 0; i < BLOCK_NUMBER; i++)
+    sprite = ui_elements.menu_quit_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
     {
-      if (blocks[i].visibility())
+      signalExit();
+    }
+  }
+
+  if (screen_open == PAUSE_SCREEN)
+  {
+    ASGE::Sprite* sprite =
+      ui_elements.pause_resume_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
+    {
+      screen_open = GAME_SCREEN;
+      return;
+    }
+
+    sprite = ui_elements.pause_menu_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
+    {
+      screen_open = MENU_SCREEN;
+      return;
+    }
+
+    sprite = ui_elements.pause_quit_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
+    {
+      signalExit();
+    }
+  }
+
+  if (screen_open == NEXT_LEVEL_SCREEN)
+  {
+    ASGE::Sprite* sprite =
+      ui_elements.next_level_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
+    {
+      loadNextLevel();
+      resetLevel();
+      screen_open = GAME_SCREEN;
+      level_completed = false;
+      return;
+    }
+  }
+
+  if (screen_open == GAME_OVER_SCREEN)
+  {
+    ASGE::Sprite* sprite =
+      ui_elements.game_end_play_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
+    {
+      resetGame();
+      screen_open = GAME_SCREEN;
+      return;
+    }
+
+    sprite = ui_elements.game_end_menu_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
+    {
+      screen_open = MENU_SCREEN;
+      return;
+    }
+
+    sprite = ui_elements.game_end_quit_button.spriteComponent()->getSprite();
+    if (collision.isInside(sprite, click->xpos, click->ypos) &&
+        ui_elements.updateButton(click->action, sprite))
+    {
+      signalExit();
+    }
+  }
+}
+
+void Game::loadNextLevel()
+{
+  current_level++;
+  std::string level_name =
+    "../../GameData/Levels/lvl_" + std::to_string(current_level) + ".txt";
+
+  if (!level.load(level_name))
+  {
+    std::cout << "Next Level NOT loaded correctly" << std::endl;
+  }
+}
+
+void Game::update(const ASGE::GameTime& game)
+{
+  if (screen_open == GAME_SCREEN && !game_over && !game_won && !level_completed)
+  {
+    if (player.playerLives() <= 0)
+    {
+      game_over = true;
+      screen_open = GAME_OVER_SCREEN;
+    }
+
+    level_completed = true;
+    for (int i = 0; i < level.block_num; i++)
+    {
+      if (blocks[i].active())
       {
-        gamewon = false;
+        level_completed = false;
         break;
       }
     }
 
-    // Shot Timer
-    if (double(game_time.game_time.count()) >= player.shootTimer())
+    if (level_completed)
+    {
+      if (current_level == SETTINGS::NUM_OF_LEVELS)
+      {
+        game_won = true;
+        screen_open = GAME_OVER_SCREEN;
+      }
+      else
+      {
+        screen_open = NEXT_LEVEL_SCREEN;
+      }
+    }
+
+    // Shot timer
+    if (static_cast<float>(game.game_time.count()) >= player.shootTimer())
     {
       player.canShoot(false);
-      player.shootTimer(0);
     }
 
-    // Release gems
-    for (int i = 0; i < GEM_NUMBER; i++)
+    // Update GameObjects
+    player.update(game.delta_time.count() / 1000.f);
+    collision.playerBoundaryCollision(&player, game_width);
+
+    ball.update(game.delta_time.count() / 1000.f);
+    collision.ballCollisionHandler(&ball, &player, game_width);
+
+    // Gone below paddle
+    if (ball.position().y >= static_cast<float>(game_height) &&
+        ball.direction().y > 0)
     {
-      if (std::rand() % 5000000 + 1 < 2)
-      {
-        int random_x = std::rand() % (game_width - 120) + 60;
-        std::cout << random_x << std::endl;
-        gems[i].spriteComponent()->getSprite()->xPos(float(random_x));
-        gems[i].speed(float(std::rand() % 100 + 100));
-        gems[i].visibility(true);
-      }
+      player.decreaseLives();
+      ball.reset();
     }
 
-    // Gem Collision Detection
-    for (int i = 0; i < GEM_NUMBER; i++)
+    for (int i = 0; i < level.block_num; i++)
     {
-      if (gems[i].spriteComponent()->getBoundingBox().isInside(
-            player.spriteComponent()->getBoundingBox()) &&
-          gems[i].visibility())
+      if (blocks[i].active())
       {
-        gems[i].visibility(false);
-        gems[i].spriteComponent()->getSprite()->yPos(-50);
-        score += 10;
-      }
-      if (gems[i].spriteComponent()->getSprite()->yPos() > float(game_height))
-      {
-        gems[i].visibility(false);
-        gems[i].spriteComponent()->getSprite()->yPos(-50);
-      }
-    }
-
-    // Power Up Collision Detection
-    for (int i = 0; i < POWER_UP_NUMBER; i++)
-    {
-      if (power_ups[i].spriteComponent()->getBoundingBox().isInside(
-            player.spriteComponent()->getBoundingBox()) &&
-          power_ups[i].visibility())
-      {
-        power_ups[i].visibility(false);
-        power_ups[i].spriteComponent()->getSprite()->yPos(-50);
-        score += 10;
-        player.canShoot(true);
-        player.shootTimer(float(game_time.game_time.count()) + 4000);
-      }
-      if (power_ups[i].spriteComponent()->getSprite()->yPos() >
-          float(game_height))
-      {
-        power_ups[i].visibility(false);
-        power_ups[i].spriteComponent()->getSprite()->yPos(-50);
-      }
-    }
-
-    // Shot Collision Detection
-    for (int i = 0; i < SHOT_NUMBER; i++)
-    {
-      for (int j = 0; j < BLOCK_NUMBER; j++)
-      {
-        if (shots[i].spriteComponent()->getBoundingBox().isInside(
-              blocks[j].spriteComponent()->getBoundingBox()) &&
-            shots[i].visibility() && blocks[j].visibility())
+        if (collision.ballBlockCollision(&ball, &blocks[i]))
         {
-          blocks[j].visibility(false);
-          shots[i].visibility(false);
-          score += 5;
+          blocks[i].active(false);
+          player.increaseScore(1);
+
+          for (int j = 0; j < level.power_up_num; j++)
+          {
+            if (level.power_up_blocks[j] == i)
+            {
+              power_ups[j].position();
+              power_ups[j].active(true);
+            }
+          }
+        }
+
+        for (int j = 0; j < SETTINGS::MAX_SHOT_NUM; j++)
+        {
+          if (shots[j].active() &&
+              collision.AABBAABBCollision(blocks[i].getRectangle(),
+                                          shots[j].getRectangle()))
+          {
+            blocks[i].active(false);
+            shots[j].active(false);
+            player.increaseScore(5);
+
+            for (int k = 0; k < level.power_up_num; k++)
+            {
+              if (level.power_up_blocks[k] == i)
+              {
+                power_ups[k].position();
+                power_ups[k].active(true);
+              }
+            }
+          }
         }
       }
     }
 
-    // Move Player
-    float new_x = player.spriteComponent()->getSprite()->xPos();
-    if (player.direction().x == -1 &&
-        player.spriteComponent()->getSprite()->xPos() > 0)
+    for (int i = 0; i < SETTINGS::MAX_GEM_NUM; i++)
     {
-      new_x =
-        new_x - float(player.speed() * (game_time.delta_time.count() / 1000.f));
-    }
-    else if (player.direction().x == 1 &&
-             player.spriteComponent()->getSprite()->xPos() <
-               float(game_width - 100))
-    {
-      new_x =
-        new_x + float(player.speed() * (game_time.delta_time.count() / 1000.f));
-    }
-
-    player.spriteComponent()->getSprite()->xPos(new_x);
-
-    // Move Ball
-    float ball_x = ball.spriteComponent()->getSprite()->xPos();
-    float ball_y = ball.spriteComponent()->getSprite()->yPos();
-
-    ball_x += float(ball.direction().x * ball.speed() *
-                    (game_time.delta_time.count() / 1000.f));
-    ball_y += float(ball.direction().y * ball.speed() *
-                    (game_time.delta_time.count() / 1000.f));
-
-    if (!collisionDetection(
-          ball_x, ball_y, ball.spriteComponent()->getSprite()->width()))
-    {
-      ball_x = 320;
-      ball_y = 800;
-
-      vector2 dir = vector2(-1, -1);
-      dir.normalise();
-      ball.direction(dir.x, dir.y);
-    }
-
-    // Set new ball position
-    ball.spriteComponent()->getSprite()->xPos(ball_x);
-    ball.spriteComponent()->getSprite()->yPos(ball_y);
-
-    // Update Gems
-    for (int i = 0; i < GEM_NUMBER; i++)
-    {
-      if (gems[i].visibility())
+      if (gems[i].active())
       {
-        float current_y = gems[i].spriteComponent()->getSprite()->yPos();
-        current_y -= float(gems[i].direction().y * gems[i].speed() *
-                           (game_time.delta_time.count() / 1000.f));
-        gems[i].spriteComponent()->getSprite()->yPos(current_y);
+        gems[i].update(game.delta_time.count() / 1000);
+
+        if (collision.AABBAABBCollision(gems[i].getRectangle(),
+                                        player.getRectangle()))
+        {
+          gems[i].reset();
+          player.increaseScore(20);
+        }
+
+        if (gems[i].position().y > static_cast<float>(game_height))
+        {
+          gems[i].reset();
+        }
+      }
+      else
+      {
+        if (rand() % 200000 + 1 < 2)
+        {
+          float random_x =
+            static_cast<float>(std::rand() % (game_width - 120) + 60);
+          gems[i].setPosition(random_x, gems[i].position().y);
+          gems[i].movementComponent()->setSpeed(
+            static_cast<float>(std::rand() % 100 + 100));
+          gems[i].active(true);
+        }
       }
     }
 
-    // Update Power Ups
-    for (int i = 0; i < POWER_UP_NUMBER; i++)
+    for (int i = 0; i < level.power_up_num; i++)
     {
-      if (power_ups[i].visibility())
+      if (power_ups[i].active())
       {
-        float current_y = power_ups[i].spriteComponent()->getSprite()->yPos();
-        current_y -= float(power_ups[i].direction().y * power_ups[i].speed() *
-                           (game_time.delta_time.count() / 1000.f));
-        power_ups[i].spriteComponent()->getSprite()->yPos(current_y);
+        power_ups[i].update(game.delta_time.count() / 1000);
+
+        if (collision.AABBAABBCollision(power_ups[i].getRectangle(),
+                                        player.getRectangle()))
+        {
+          power_ups[i].reset();
+          player.canShoot(true);
+          player.shootTimer(static_cast<float>(game.game_time.count()) + 4000);
+        }
+
+        if (power_ups[i].position().y > static_cast<float>(game_height))
+        {
+          power_ups[i].reset();
+        }
       }
     }
 
-    // Update Shots
-    for (int i = 0; i < SHOT_NUMBER; i++)
+    for (int i = 0; i < SETTINGS::MAX_SHOT_NUM; i++)
     {
-      if (shots[i].visibility())
+      if (shots[i].active())
       {
-        float current_y = shots[i].spriteComponent()->getSprite()->yPos();
-        current_y -= float(shots[i].direction().y * shots[i].speed() *
-                           (game_time.delta_time.count() / 1000.f));
-        shots[i].spriteComponent()->getSprite()->yPos(current_y);
+        shots[i].update(game.delta_time.count() / 1000);
       }
     }
   }
-
-  // auto dt_sec = game_time.delta_time.count() / 1000.0;
-  // make sure you use delta time in any movement calculations!
 }
 
-/**
- *   @brief   Renders the scene
- *   @details Renders all the game objects to the current frame.
- *            Once the current frame is has finished the buffers are
- *            swapped accordingly and the image shown.
- *   @return  void
- */
-void BreakoutGame::render(const ASGE::GameTime&)
+void Game::renderMainMenuScreen()
 {
-  renderer->setFont(0);
+  renderer->renderText("BLOCK BREAKER", 185, 250, 2, ASGE::COLOURS::WHITE);
+  renderer->renderSprite(
+    *ui_elements.menu_play_button.spriteComponent()->getSprite());
+  renderer->renderText("Play", 300, 368, 1, ASGE::COLOURS::BLACK);
+  renderer->renderSprite(
+    *ui_elements.menu_quit_button.spriteComponent()->getSprite());
+  renderer->renderText("Quit", 300, 418, 1, ASGE::COLOURS::BLACK);
+}
 
-  if (in_menu)
+void Game::renderGameScreen()
+{
+  renderer->renderSprite(*player.spriteComponent()->getSprite());
+  renderer->renderSprite(*ball.spriteComponent()->getSprite());
+
+  std::string score = "Score: ";
+  score += std::to_string(player.playerScore());
+  renderer->renderText(score, 25, 890, 1.5, ASGE::COLOURS::WHITE);
+
+  std::string lives = "Lives: ";
+  lives += std::to_string(player.playerLives());
+  renderer->renderText(lives, 480, 890, 1.5, ASGE::COLOURS::WHITE);
+
+  for (int i = 0; i < level.block_num; i++)
   {
-    renderer->renderText("Press ENTER to start the game", 180, 460);
-    renderer->renderText("Press ENTER when in the game to restart", 130, 520);
+    if (blocks[i].active())
+    {
+      renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
+    }
   }
-  else
+
+  for (int i = 0; i < SETTINGS::MAX_SHOT_NUM; i++)
   {
-    for (int i = 0; i < BLOCK_NUMBER; i++)
+    if (shots[i].active())
     {
-      if (blocks[i].visibility())
-      {
-        renderer->renderSprite(*blocks[i].spriteComponent()->getSprite());
-      }
+      renderer->renderSprite(*shots[i].spriteComponent()->getSprite());
     }
+  }
 
-    for (int i = 0; i < GEM_NUMBER; i++)
+  for (int i = 0; i < level.power_up_num; i++)
+  {
+    if (power_ups[i].active())
     {
-      if (gems[i].visibility())
-      {
-        renderer->renderSprite(*gems[i].spriteComponent()->getSprite());
-      }
+      renderer->renderSprite(*power_ups[i].spriteComponent()->getSprite());
     }
+  }
 
-    for (int i = 0; i < POWER_UP_NUMBER; i++)
+  for (int i = 0; i < SETTINGS::MAX_GEM_NUM; i++)
+  {
+    if (gems[i].active())
     {
-      if (power_ups[i].visibility())
-      {
-        renderer->renderSprite(*power_ups[i].spriteComponent()->getSprite());
-      }
+      renderer->renderSprite(*gems[i].spriteComponent()->getSprite());
     }
+  }
+}
 
-    for (int i = 0; i < SHOT_NUMBER; i++)
-    {
-      if (shots[i].visibility())
-      {
-        renderer->renderSprite(*shots[i].spriteComponent()->getSprite());
-      }
-    }
+void Game::renderNextLevelScreen()
+{
+  renderGameScreen();
 
-    if (gamewon)
-    {
-      renderer->renderText("Congratulations! You've won!", 170, 460);
-    }
-    else if (gameover)
-    {
-      renderer->renderText("You Lose", 300, 460);
-    }
-    renderer->renderSprite(*player.spriteComponent()->getSprite());
-    renderer->renderSprite(*ball.spriteComponent()->getSprite());
+  renderer->renderText("YOU WIN!", 220, 380, 2, ASGE::COLOURS::WHITE);
+  renderer->renderSprite(
+    *ui_elements.next_level_button.spriteComponent()->getSprite());
+  renderer->renderText("Next Level", 265, 444, 1, ASGE::COLOURS::BLACK);
+}
 
-    std::string lives_txt = "Lives: ";
-    lives_txt += std::to_string(lives);
-    renderer->renderText(lives_txt, 550, 25, 1, ASGE::COLOURS::WHITE);
+void Game::renderGameOverScreen()
+{
+  renderGameScreen();
 
-    std::string score_txt = "Score: ";
-    score_txt += std::to_string(score);
-    renderer->renderText(score_txt, 525, 50, 1, ASGE::COLOURS::WHITE);
+  if (game_won)
+  {
+    renderer->renderText("YOU WIN!", 230, 380, 2, ASGE::COLOURS::WHITE);
+  }
+  else if (game_over)
+  {
+    renderer->renderText("YOU LOSE", 230, 380, 2, ASGE::COLOURS::WHITE);
+  }
+
+  renderer->renderSprite(
+    *ui_elements.game_end_play_button.spriteComponent()->getSprite());
+  renderer->renderText("Play Again", 265, 425, 1, ASGE::COLOURS::BLACK);
+  renderer->renderSprite(
+    *ui_elements.game_end_menu_button.spriteComponent()->getSprite());
+  renderer->renderText("Menu", 295, 475, 1, ASGE::COLOURS::BLACK);
+  renderer->renderSprite(
+    *ui_elements.game_end_quit_button.spriteComponent()->getSprite());
+  renderer->renderText("Quit", 295, 525, 1, ASGE::COLOURS::BLACK);
+}
+
+void Game::renderPauseScreen()
+{
+  renderGameScreen();
+
+  renderer->renderText("PAUSED", 250, 200, 2, ASGE::COLOURS::WHITE);
+
+  renderer->renderSprite(
+    *ui_elements.pause_resume_button.spriteComponent()->getSprite());
+  renderer->renderText("Resume", 291, 325, 1, ASGE::COLOURS::BLACK);
+  renderer->renderSprite(
+    *ui_elements.pause_menu_button.spriteComponent()->getSprite());
+  renderer->renderText("Menu", 295, 375, 1, ASGE::COLOURS::BLACK);
+  renderer->renderSprite(
+    *ui_elements.pause_quit_button.spriteComponent()->getSprite());
+  renderer->renderText("Quit", 295, 425, 1, ASGE::COLOURS::BLACK);
+}
+
+void Game::render(const ASGE::GameTime& game)
+{
+  if (screen_open == MENU_SCREEN)
+  {
+    renderMainMenuScreen();
+  }
+  else if (screen_open == GAME_SCREEN)
+  {
+    renderGameScreen();
+  }
+  else if (screen_open == NEXT_LEVEL_SCREEN)
+  {
+    renderNextLevelScreen();
+  }
+  else if (screen_open == GAME_OVER_SCREEN)
+  {
+    renderGameOverScreen();
+  }
+  else if (screen_open == PAUSE_SCREEN)
+  {
+    renderPauseScreen();
+  }
+}
+
+void Game::resetGame()
+{
+  game_over = false;
+  game_won = false;
+
+  current_level = 0;
+  loadNextLevel();
+
+  ball.reset();
+  player.reset();
+
+  resetGameObjects();
+}
+
+void Game::resetLevel()
+{
+  game_over = false;
+  game_won = false;
+
+  ball.reset();
+  player.resetPosition();
+
+  resetGameObjects();
+}
+
+void Game::resetGameObjects()
+{
+  for (int i = 0; i < level.block_num; i++)
+  {
+    blocks[i].active(true);
+    blocks[i].setPosition(level.block_positions[i][0],
+                          level.block_positions[i][1]);
+  }
+  for (int i = 0; i < SETTINGS::MAX_GEM_NUM; i++)
+  {
+    gems[i].reset();
+  }
+  for (int i = 0; i < level.power_up_num; i++)
+  {
+    power_ups[i].reset();
+    power_ups[i].setPosition(
+      blocks[level.power_up_blocks[i]].position().x + (blocks[i].width() / 2) -
+        (power_ups[i].width() / 2),
+      blocks[level.power_up_blocks[i]].position().y + (blocks[i].height() / 2) -
+        (power_ups[i].height() / 2));
+  }
+  for (int i = 0; i < SETTINGS::MAX_SHOT_NUM; i++)
+  {
+    shots[i].reset();
   }
 }
